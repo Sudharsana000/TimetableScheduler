@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartScheduler</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+</head>
+<body>
+    <div class="container">
+        <%- include('header') %>
+
+        <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
+            <h1>Faculties</h1>
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addFacultyModal">
+                Add Faculty
+            </button>
+        </div>
+
+        <div class="d-flex justify-content-end mb-3">
+            <input type="text" id="searchInput" class="form-control me-2" placeholder="Search Faculty...">
+        </div>
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Faculty ID</th>
+                    <th>Department ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Designation</th>
+                    <th>Handling Paper Preferences</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% faculties.forEach(function(faculty) { %>
+                    <tr data-faculty-id="<%= faculty.faculty_id %>">
+                        <td><%= faculty.faculty_id %></td>
+                        <td><%= faculty.dept_id %></td>
+                        <td><%= faculty.name %></td>
+                        <td><%= faculty.email %></td>
+                        <td><%= faculty.designation %></td>
+                        <td>
+                            <% if (Array.isArray(faculty.handling_paper_preferences) && faculty.handling_paper_preferences.length > 0) { %>
+                                <% faculty.handling_paper_preferences.forEach(function(preference) { %>
+                                    <%= preference %><br/>
+                                <% }); %>
+                            <% } else { %>
+                                No Courses Assigned
+                            <% } %>
+                        </td>
+                        <td>
+                            <button class="btn btn-primary btn-sm me-2 edit-btn mb-1"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-danger btn-sm delete-btn mb-1"><i class="fas fa-trash-alt"></i></button>
+                        </td>
+                    </tr>
+                <% }); %>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Add Faculty Modal -->
+    <div class="modal fade" id="addFacultyModal" tabindex="-1" aria-labelledby="addFacultyModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content p-4">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addFacultyModalLabel">Add Faculty</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addFacultyForm">
+                        <div class="mb-3">
+                            <label for="facultyId" class="form-label">Faculty ID</label>
+                            <input type="text" class="form-control" id="facultyId" name="faculty_id" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="deptId" class="form-label">Department</label>
+                            <select class="form-control" id="deptId" name="dept_id" required>
+                                <!-- Options will be dynamically loaded here -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="facultyName" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="facultyName" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="facultyEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="facultyEmail" name="email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="facultyDesignation" class="form-label">Designation</label>
+                            <input type="text" class="form-control" id="facultyDesignation" name="designation" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="facultyPreferences" class="form-label">Handling Paper Preferences</label>
+                            <div id="facultyPreferences" class="form-check">
+                                <!-- Checkboxes will be dynamically loaded here -->
+                            </div>
+                        </div>                                                               
+                        <button type="submit" class="btn btn-primary">Add Faculty</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteModalLabel">Confirm Deletion</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to delete this faculty member?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" id="confirmDelete" class="btn btn-danger">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Faculty Modal -->
+    <div class="modal fade" id="editFacultyModal" tabindex="-1" aria-labelledby="editFacultyModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content p-4">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editFacultyModalLabel">Edit Faculty</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editFacultyForm">
+                        <div class="mb-3">
+                            <label for="editFacultyId" class="form-label">Faculty ID</label>
+                            <input type="text" class="form-control" id="editFacultyId" name="faculty_id" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editDepartmentId" class="form-label">Department ID</label>
+                            <input type="text" class="form-control" id="editDepartmentId" name="dept_id" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editName" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="editName" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="editEmail" name="email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editDesignation" class="form-label">Designation</label>
+                            <input type="text" class="form-control" id="editDesignation" name="designation" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editPreferences" class="form-label">Handling Paper Preferences</label>
+                            <input type="text" class="form-control" id="editPreferences" name="handling_paper_preferences" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Update Faculty</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script>
+        let facultyIdToDelete = null;
+        let rowToDelete = null;
+        let selectedCourseIds = []; // List to store selected course IDs
+
+        document.getElementById('searchInput').addEventListener('input', function() {
+            var input = this.value.toLowerCase();
+            var tableRows = document.querySelectorAll('table tbody tr');
+            
+            tableRows.forEach(function(row) {
+                var columns = row.querySelectorAll('td');
+                var rowText = '';
+
+                columns.forEach(function(column) {
+                    rowText += column.textContent.toLowerCase() + ' ';
+                });
+
+                if (rowText.indexOf(input) > -1) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+
+        // Handling modal behavior
+        document.getElementById('addFacultyModal').addEventListener('hidden.bs.modal', function () {
+            document.getElementById('addFacultyForm').reset();
+        });
+
+        // Function to fetch departments from the database
+        function fetchDepartments() {
+            const url = `/get_departments`;
+            return fetch(url)
+                .then(response => response.json())
+                .then(data => data.departments)
+                .catch(error => console.error('Error fetching departments:', error));
+        }
+
+        // Function to populate the departments dropdown
+        function populateDepartments(departments) {
+            const deptDropdown = document.getElementById('deptId');
+            deptDropdown.innerHTML = '';
+            departments.forEach(department => {
+                const option = document.createElement('option');
+                option.value = department.id;
+                option.textContent = department.name;
+                deptDropdown.appendChild(option);
+            });
+        }
+
+        // Fetch and populate departments when the modal is opened
+        document.getElementById('addFacultyModal').addEventListener('show.bs.modal', function () {
+            fetchDepartments()
+                .then(departments => populateDepartments(departments));
+        });
+
+        // Fetch and populate handling preferences when a department is selected
+        document.getElementById('deptId').addEventListener('change', function() {
+            const departmentId = this.value;
+            if (departmentId) {
+                fetchHandlingPreferences(departmentId)
+                    .then(courses => populateHandlingPreferences(courses));
+            } else {
+                document.getElementById('facultyPreferences').innerHTML = '';
+            }
+        });
+
+        // Function to fetch handling paper preferences based on department ID
+        function fetchHandlingPreferences(departmentId) {
+            const url = `/get_courses/${departmentId}`;
+            return fetch(url)
+                .then(response => response.json())
+                .then(data => data.courses)
+                .catch(error => console.error('Error fetching handling preferences:', error));
+        }
+
+        // Function to populate the handling preferences dropdown
+        function populateHandlingPreferences(courses) {
+        const preferencesContainer = document.getElementById('facultyPreferences');
+        const selectedList = document.getElementById('selected-preferences'); // assume you have a <ul> with id "selected-preferences"
+
+        preferencesContainer.innerHTML = ''; // Clear previous options
+
+        courses.forEach(course => {
+            const div = document.createElement('div');
+            div.classList.add('form-check');
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.classList.add('form-check-input');
+            checkbox.id = `course-${course.id}`;
+            checkbox.name = 'handling_paper_preferences[]';
+            checkbox.value = course.id; // Store course_id in the checkbox value
+
+            const label = document.createElement('label');
+            label.classList.add('form-check-label');
+            label.htmlFor = `course-${course.id}`;
+            label.textContent = course.name;
+
+            div.appendChild(checkbox);
+            div.appendChild(label);
+            preferencesContainer.appendChild(div);
+
+            // Add event listener to update the selectedCourseIds list
+            checkbox.addEventListener('change', function() {
+                if (checkbox.checked) {
+                    // Add the course ID to the list if checked
+                    selectedCourseIds.push(course.id);
+                } else {
+                    // Remove the course ID from the list if unchecked
+                    selectedCourseIds = selectedCourseIds.filter(id => id !== course.id);
+                }
+
+                // Update the selected list display
+                selectedList.innerHTML = '';
+                selectedCourseIds.forEach(id => {
+                    const courseName = courses.find(course => course.id === id).name;
+                    const listItem = document.createElement('li');
+                    listItem.textContent = courseName;
+                    listItem.style.backgroundColor = 'blue';
+                    listItem.style.color = 'white';
+                    selectedList.appendChild(listItem);
+                });
+            });
+        });
+    }
+
+    document.getElementById('addFacultyForm').addEventListener('submit', function(event) {
+        event.preventDefault(); // Prevent form submission
+        // Gather form data
+        const facultyData = {
+            faculty_id: document.getElementById('facultyId').value,
+            dept_id: document.getElementById('deptId').value,
+            name: document.getElementById('facultyName').value,
+            email: document.getElementById('facultyEmail').value,
+            designation: document.getElementById('facultyDesignation').value,
+            handling_paper_preferences: selectedCourseIds
+        };
+        // Send data to server
+        fetch('/add-faculty', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(facultyData)
+        })
+        .then(response => {
+            if (response.ok) {
+                window.location.reload(); // Reload the page
+            } else {
+                return response.json().then(data => {
+                    alert('Error adding faculty: ' + data.error);
+                    alert(response.status);
+                });
+            }
+        })
+        .catch(error => {
+            // console.error('Error:', error);
+            // alert(error);
+            location.reload();
+        });
+    });
+
+        // Event listener for edit button click
+        document.querySelectorAll('.edit-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const facultyRow = this.closest('tr');
+                const facultyId = facultyRow.getAttribute('data-faculty-id');
+                const editFacultyForm = document.getElementById('editFacultyForm');
+
+                // Populate the edit form with faculty data
+                editFacultyForm.querySelector('#editFacultyId').value = facultyRow.children[0].textContent;
+                editFacultyForm.querySelector('#editDepartmentId').value = facultyRow.children[1].textContent;
+                editFacultyForm.querySelector('#editName').value = facultyRow.children[2].textContent;
+                editFacultyForm.querySelector('#editEmail').value = facultyRow.children[3].textContent;
+                editFacultyForm.querySelector('#editDesignation').value = facultyRow.children[4].textContent;
+                editFacultyForm.querySelector('#editPreferences').value = facultyRow.children[5].textContent;
+
+                // Show the edit modal
+                const editFacultyModal = new bootstrap.Modal(document.getElementById('editFacultyModal'));
+                editFacultyModal.show();
+            });
+        });
+
+        document.querySelectorAll('.delete-btn').forEach(function(button) {
+            button.addEventListener('click', function() {
+                var facultyId = this.closest('tr').dataset.facultyId;
+                facultyIdToDelete = facultyId;
+                rowToDelete = this.closest('tr');
+                var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+                deleteModal.show();
+            });
+        });
+
+        document.getElementById('confirmDelete').addEventListener('click', function() {
+            if (facultyIdToDelete) {
+                // Make an AJAX request to delete the faculty member
+                fetch(`/delete_faculty/${facultyIdToDelete}`, {
+                    method: 'DELETE'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Remove the row from the table
+                        window.location.reload();
+                        // if (rowToDelete) {
+                        //     rowToDelete.remove();
+                        // }
+                        // facultyIdToDelete = null;
+                        // rowToDelete = null;
+                        // var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+                        // deleteModal.hide();
+                    } else {
+                        console.error('Error deleting faculty');
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

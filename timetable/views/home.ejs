@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartScheduler</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+</head>
+<body>
+    <div class="container">
+        <%- include('header') %>
+        <h1>Home</h1>
+        <!-- Button to generate timetable -->
+        <button id="generate-timetable-btn" class="btn btn-primary">Generate Timetable</button>
+        <!-- Div to display the generated timetable -->
+        <div id="timetable-display" class="mt-4"></div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script>
+        document.getElementById('generate-timetable-btn').addEventListener('click', function() {
+            fetch('/generate')
+                .then(response => response.json())
+                .then(data => {
+                    const timetableDisplay = document.getElementById('timetable-display');
+                    timetableDisplay.innerHTML = generateTimetableHTML(data);
+                })
+                .catch(error => {
+                    console.error('Error fetching timetable:', error);
+                });
+        });
+
+        function generateTimetableHTML(timetable) {
+            let html = '<div class="table-responsive">';
+            for (const [group, days] of Object.entries(timetable)) {
+                html += `<h2>${group}</h2>`;
+                html += '<table class="table table-bordered">';
+                html += '<thead><tr><th>Day</th>';
+
+                // Generate hour headers
+                const hours = Array.from({ length: 7 }, (_, i) => i + 1);
+                hours.forEach(hour => {
+                    html += `<th>Hour ${hour}</th>`;
+                });
+
+                html += '</tr></thead><tbody>';
+
+                // Generate rows for each day
+                for (const day of ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']) {
+                    html += `<tr><td>${day}</td>`;
+                    hours.forEach(hour => {
+                        const details = days[day] && days[day][hour] ? days[day][hour] : {};
+                        const cellContent = `${details.Course || ''}<br>${details.Faculty || ''}<br>${details.Classroom || ''}`;
+                        html += `<td>${cellContent}</td>`;
+                    });
+                    html += '</tr>';
+                }
+
+                html += '</tbody></table>';
+            }
+            html += '</div>';
+            return html;
+        }
+    </script>
+</body>
+</html>

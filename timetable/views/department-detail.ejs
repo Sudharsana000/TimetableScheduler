@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= department.name %> - Details</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            padding: 0;
+            margin: 0;
+        }
+
+        .navbar {
+            text-align: center;
+            background-color: #333;
+            padding: 10px;
+        }
+
+        .navbar a {
+            color: white;
+            padding: 14px 20px;
+            text-decoration: none;
+            display: inline-block;
+            margin: 0 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        .navbar a:hover {
+            background-color: #555;
+        }
+
+        .content {
+            padding: 20px;
+        }
+
+        .content h1 {
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <a href="#programme">Programme</a>
+    <a href="#faculties">Faculties</a>
+    <a href="#labs">Labs</a>
+</div>
+
+<div class="content">
+    <h1>Welcome to the <%= department.name %> Department</h1>
+    <p>Here you can find information about the department's programme, faculties, and labs.</p>
+
+    <section id="programme">
+        <h2>Programme</h2>
+        <p>Details about the programmes offered by the department.</p>
+    </section>
+
+    <section id="faculties">
+        <h2>Faculties</h2>
+        <p>Information about the faculties in this department.</p>
+    </section>
+
+    <section id="labs">
+        <h2>Labs</h2>
+        <p>Details about the labs and research facilities available in the department.</p>
+    </section>
+</div>
+
+</body>
+</html>

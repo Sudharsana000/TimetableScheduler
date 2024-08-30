@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartScheduler</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Roboto', sans-serif;
+        }
+
+        .department-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin: 20px;
+        }
+
+        .department-card {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            transition: background-color 0.3s ease;
+            cursor: pointer;
+        }
+
+        .department-card:hover {
+            background-color: #e9e9e9;
+        }
+
+        .department-icon {
+            margin-right: 15px;
+            font-size: 2em;
+        }
+
+        .department-name {
+            font-size: 1em;
+            /* font-family: 'Roboto', sans-serif; */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <%- include('header') %>
+
+        <div class="department-grid">
+            <% departments.forEach(department => { %>
+                <div class="department-card" onclick="location.href='/departments/<%= department.dept_id %>'">
+                    <!-- <div class="department-icon"><%= department.icon %></div> -->
+                    <div class="department-name"><%= department.dept_name %></div>
+                </div>
+            <% }) %>
+        </div>
+    </div>
+
+</body>
+</html>
