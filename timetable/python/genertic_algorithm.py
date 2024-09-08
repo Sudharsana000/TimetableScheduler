@@ -1,6 +1,8 @@
 import random
 import json
 
+faculty_class_count = {}
+
 def structure_timetable(days, hours_per_day):
     timetable = {}
     
@@ -15,7 +17,43 @@ def structure_timetable(days, hours_per_day):
 
     return timetable
 
+# Global dictionary to track how many classes each faculty is handling
+faculty_class_count = {}
+
+def assign_faculties_for_lab_courses(lab_courses, faculties):
+    global faculty_class_count  # Use the global variable
+
+    lab_course_faculty_assignment = {}
+
+    for course in lab_courses:
+        if course in faculties and faculties[course]:
+            # Iterate over the list of available faculties
+            selected_faculty = None
+            for faculty in faculties[course]:
+                if faculty not in faculty_class_count:
+                    faculty_class_count[faculty] = 0
+
+                # Select the first faculty with less than 2 classes assigned
+                if faculty_class_count[faculty] < 2:
+                    selected_faculty = faculty
+                    faculty_class_count[faculty] += 1
+                    break
+
+            if selected_faculty is None:
+                print(f"Error: No faculties available for lab course '{course}' who can handle more classes")
+                return
+
+            lab_course_faculty_assignment[course] = selected_faculty
+        else:
+            print(f"Error: No faculties available for lab course '{course}'")
+            return
+
+    return lab_course_faculty_assignment
+
 def add_lab_courses(class1, lab_courses, faculties, classes_per_week, labs, hours_per_day, existing_class=None):
+    # Call the faculty assignment function here
+    lab_course_faculty_assignment = assign_faculties_for_lab_courses(lab_courses, faculties)
+
     # Initialize availability trackers for labs and faculties
     lab_availability = {
         day: {hour: list(labs) for hour in range(1, hours_per_day + 1)}
@@ -29,8 +67,9 @@ def add_lab_courses(class1, lab_courses, faculties, classes_per_week, labs, hour
             faculty_availability[day][hour] = {}
             for course in lab_courses:
                 if course in faculties:
-                    # Create a new list for each time slot to avoid shared references
-                    faculty_availability[day][hour][course] = list(faculties[course])
+                    # Use the assigned faculty for this lab course
+                    selected_faculty = lab_course_faculty_assignment[course]
+                    faculty_availability[day][hour][course] = [selected_faculty]
                 else:
                     print(f"Error: Course '{course}' not found in faculties dictionary.")
                     return
@@ -47,6 +86,7 @@ def add_lab_courses(class1, lab_courses, faculties, classes_per_week, labs, hour
                     if course in faculty_availability[day][hour] and existing_class[day][hour]["Faculty"] in faculty_availability[day][hour][course]:
                         faculty_availability[day][hour][course].remove(existing_class[day][hour]["Faculty"])
     
+    # Filter for available hours for lab allocation (same logic as before)
     day_hour_combinations = [
         (day, int(hour))  # Extract the hour number as an integer
         for day in class1.keys()
@@ -69,18 +109,15 @@ def add_lab_courses(class1, lab_courses, faculties, classes_per_week, labs, hour
             ]
             
             if not available_hours:
-                # If no available hours, move to the next course
+                print(f"Error: No available hours for lab course '{course}'")
                 break
 
             random_available_hour = random.choice(available_hours)
             day, hour = random_available_hour
 
-            # Select the first available lab and faculty
+            # Select the first available lab and faculty (already assigned to this course)
             selected_lab = lab_availability[day][hour].pop(0)
             selected_faculty = faculty_availability[day][hour][course].pop(0)
-
-            selected_lab_next = lab_availability[day][hour+1].pop(0)
-            selected_faculty_next = faculty_availability[day][hour+1][course].pop(0)
 
             # Allocate the course, lab, and faculty to this slot
             class1[day][hour] = {
@@ -90,8 +127,8 @@ def add_lab_courses(class1, lab_courses, faculties, classes_per_week, labs, hour
             }
 
             class1[day][hour + 1] = {
-                "Classroom": selected_lab_next,
-                "Faculty": selected_faculty_next,
+                "Classroom": selected_lab,
+                "Faculty": selected_faculty,
                 "Course": course
             }
 
@@ -105,8 +142,41 @@ def add_lab_courses(class1, lab_courses, faculties, classes_per_week, labs, hour
             available_days.remove(day)
             unallocated_classes_per_week -= 1
 
+def assign_faculties_for_courses(regular_courses, regular_faculties):
+    global faculty_class_count  # Use the global variable
+
+    course_faculty_assignment = {}
+
+    for course in regular_courses:
+        if course in regular_faculties and regular_faculties[course]:
+            # Iterate over the list of available faculties
+            selected_faculty = None
+            for faculty in regular_faculties[course]:
+                if faculty not in faculty_class_count:
+                    faculty_class_count[faculty] = 0
+
+                # Select the first faculty with less than 2 classes assigned
+                if faculty_class_count[faculty] < 2:
+                    selected_faculty = faculty
+                    faculty_class_count[faculty] += 1
+                    break
+
+            if selected_faculty is None:
+                print(f"Error: No faculties available for course '{course}' who can handle more classes")
+                return
+
+            course_faculty_assignment[course] = selected_faculty
+        else:
+            print(f"Error: No faculties available for course '{course}'")
+            return
+
+    return course_faculty_assignment
+
 def add_regular_courses(class1, regular_courses, regular_faculties, regular_classes_per_week, classrooms, existing_classes=None):
-    # Add regular courses to the schedule
+    # Call the faculty assignment function here
+    course_faculty_assignment = assign_faculties_for_courses(regular_courses, regular_faculties)
+
+    # Proceed with the existing logic of assigning classrooms and courses
     classroom_availability = {
         day: {hour: list(classrooms) for hour in range(1, hours_per_day + 1)}
         for day in class1.keys()
@@ -120,15 +190,19 @@ def add_regular_courses(class1, regular_courses, regular_faculties, regular_clas
             faculty_availability[day][hour] = {}
             for course in regular_courses:
                 if course in regular_faculties:
-                    # Create a new list for each time slot to avoid shared references
-                    faculty_availability[day][hour][course] = list(regular_faculties[course])
-                    if (class1[day][hour]['Faculty'] is not None) and (class1[day][hour]['Faculty'] in faculty_availability[day][hour][course]):
-                        #print(day," ", hour," ",class1[day][hour]['Faculty'])
-                        faculty_availability[day][hour][course].remove(class1[day][hour]['Faculty'])
+                    # Use the assigned faculty for this course
+                    selected_faculty = course_faculty_assignment[course]
+                    faculty_availability[day][hour][course] = [selected_faculty]
                 else:
                     print(f"Error: Course '{course}' not found in faculties dictionary.")
                     return
-                
+
+    # Add regular courses to the schedule
+    classroom_availability = {
+        day: {hour: list(classrooms) for hour in range(1, hours_per_day + 1)}
+        for day in class1.keys()
+    }
+
     # Adjust availability based on existing_class timetable
     if existing_classes:
         for day in existing_classes:
@@ -185,8 +259,6 @@ def add_regular_courses(class1, regular_courses, regular_faculties, regular_clas
 
             day_hour_combinations.remove((day, hour))
 
-            #print(day, " ",hour," ",class1[day][hour]," ",unallocated_regular_classes_per_week)
-
 days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
 lab_courses = ["C Lab", "DS Lab", "MAD Lab"]  # Ensure these match the keys in faculties
 regular_courses = ["MFCS", "SPC", "DS", "DBMS", "WT", "TWM"]
@@ -234,10 +306,10 @@ add_lab_courses(class2, lab_courses, faculties, classes_per_week, labs, hours_pe
 add_regular_courses(class1, regular_courses, regular_faculties, regular_classes_per_week, classrooms, class2)
 add_regular_courses(class2, regular_courses, regular_faculties, regular_classes_per_week, classrooms, class1)
 
-# # Uncomment the following line to print the resulting timetable
-# for day in days:
-#     for hour in range(1, hours_per_day+1):
-#         if (class1[day][hour]['Faculty'] == class2[day][hour]['Faculty']) or (class1[day][hour]['Classroom'] == class2[day][hour]['Classroom']):
-#             print(class1[day][hour],"----", class2[day][hour])
-json_output = json.dumps({"G1": class1, "G2": class2})
-print(json_output)
+# Uncomment the following line to print the resulting timetable
+for day in days:
+    for hour in range(1, hours_per_day+1):
+        if (class1[day][hour]['Faculty'] == class2[day][hour]['Faculty']) or (class1[day][hour]['Classroom'] == class2[day][hour]['Classroom']):
+            print(class1[day][hour],"----", class2[day][hour])
+# json_output = json.dumps({"G1": class1, "G2": class2})
+# print(json_output)
