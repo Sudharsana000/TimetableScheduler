@@ -328,7 +328,7 @@ app.get('/departments', (req, res) => {
 
 //#####################################  TimeTable Generation  #######################################//
 app.get('/generate', (req, res) => {
-  const python = spawn('python', ['../timetable/python/genertic_algorithm.py']);
+  const python = spawn('python', ['../timetable/python/mca2.py']);
 
   python.stdout.on('data', (data) => {
       res.json(JSON.parse(data));
