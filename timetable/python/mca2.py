@@ -40,7 +40,7 @@ def add_elective_courses(class1, class2, elective_courses, classrooms, elective_
         if class1[day][hour]['Course'] is None and class2[day][hour]['Course'] is None
     ]
 
-    # Allocate electives to both class1 and class2
+    # Allocate electives to both class1 and class2 at the same hour
     for elective_pair in elective_courses:
         course1, course2 = elective_pair
         unallocated_classes_per_week1 = elective_courses_per_week[course1]
@@ -63,23 +63,24 @@ def add_elective_courses(class1, class2, elective_courses, classrooms, elective_
             random_available_hour = random.choice(available_hours)
             day, hour = random_available_hour
 
-            # Assign elective course1 to class1 and course2 to class2
+            # Assign elective course1 and course2 at the same hour for both classes
             selected_classroom1 = classroom_availability[day][hour].pop(0)
             selected_classroom2 = classroom_availability[day][hour].pop(0)
 
             selected_faculty1 = faculty_availability[day][hour][course1].pop(0)
             selected_faculty2 = faculty_availability[day][hour][course2].pop(0)
 
+            # Assign electives for both classes in an array format
             class1[day][hour] = {
-                "Classroom": selected_classroom1,
-                "Faculty": selected_faculty1,
-                "Course": course1
+                "Classroom": [selected_classroom1, selected_classroom2],
+                "Faculty": [selected_faculty1, selected_faculty2],
+                "Course": [course1, course2]
             }
 
             class2[day][hour] = {
-                "Classroom": selected_classroom2,
-                "Faculty": selected_faculty2,
-                "Course": course2
+                "Classroom": [selected_classroom1, selected_classroom2],
+                "Faculty": [selected_faculty1, selected_faculty2],
+                "Course": [course1, course2]
             }
 
             if not faculty_availability[day][hour][course1]:
@@ -119,10 +120,21 @@ def add_lab_courses(class1, lab_courses, faculties, classes_per_week, labs, hour
                 if existing_class[day][hour]["Classroom"]:
                     if existing_class[day][hour]["Classroom"] in lab_availability[day][hour]:
                         lab_availability[day][hour].remove(existing_class[day][hour]["Classroom"])
-                if existing_class[day][hour]["Faculty"] and existing_class[day][hour]["Course"]:
-                    course = existing_class[day][hour]["Course"]
-                    if course in faculty_availability[day][hour] and existing_class[day][hour]["Faculty"] in faculty_availability[day][hour][course]:
-                        faculty_availability[day][hour][course].remove(existing_class[day][hour]["Faculty"])
+                
+                # Handle case where "Faculty" is a list (for electives)
+                existing_faculty = existing_class[day][hour]["Faculty"]
+                if existing_faculty:
+                    for course in faculty_availability[day][hour]:
+                        # Check if existing faculty is a list or a single value
+                        if isinstance(existing_faculty, list):
+                            # Remove each faculty in the list from availability
+                            for faculty in existing_faculty:
+                                if faculty in faculty_availability[day][hour][course]:
+                                    faculty_availability[day][hour][course].remove(faculty)
+                        else:
+                            # Handle the case where Faculty is a single value
+                            if existing_faculty in faculty_availability[day][hour][course]:
+                                faculty_availability[day][hour][course].remove(existing_faculty)
 
     # Modify day-hour combinations to avoid elective hours
     day_hour_combinations = [
@@ -329,9 +341,10 @@ add_lab_courses(class2, lab_courses, faculties, classes_per_week, labs, hours_pe
 add_regular_courses(class1, regular_courses, regular_faculties, regular_classes_per_week, classrooms, class2)
 add_regular_courses(class2, regular_courses, regular_faculties, regular_classes_per_week, classrooms, class1)
 
-for day in days:
-    for hour in range(1, hours_per_day+1):
-        if (class1[day][hour]['Faculty'] == class2[day][hour]['Faculty']) or (class1[day][hour]['Classroom'] == class2[day][hour]['Classroom']):
-            print(class1[day][hour],"----", class2[day][hour])
-# json_output = json.dumps({"G1": class1, "G2": class2})
-# print(json_output)
+# for day in days:
+#     for hour in range(1, hours_per_day+1):
+#         if (class1[day][hour]['Faculty'] == class2[day][hour]['Faculty']) or (class1[day][hour]['Classroom'] == class2[day][hour]['Classroom']):
+#             print(class1[day][hour],"----", class2[day][hour])
+
+json_output = json.dumps({"G1": class1, "G2": class2})
+print(json_output)

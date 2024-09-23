@@ -311,7 +311,6 @@ app.delete('/delete_faculty/:faculty_id', async (req, res) => {
   }
 });
 
-
 //###################################### DEPARTMENTS ###########################################//
 // Assuming you're using MySQL and have already set up your connection
 app.get('/departments', (req, res) => {
@@ -342,8 +341,6 @@ app.get('/generate', (req, res) => {
       console.log(`Process exited with code ${code}`);
   });
 });
-
-
 
 // Start the server
 const port = 3000;
