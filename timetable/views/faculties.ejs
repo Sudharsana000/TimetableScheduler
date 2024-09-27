@@ -30,7 +30,7 @@
                     <th>Name</th>
                     <th>Email</th>
                     <th>Designation</th>
-                    <th>Handling Paper Preferences</th>
+                    <!-- <th>Handling Paper Preferences</th> -->
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -42,7 +42,7 @@
                         <td><%= faculty.name %></td>
                         <td><%= faculty.email %></td>
                         <td><%= faculty.designation %></td>
-                        <td>
+                        <!-- <td>
                             <% if (Array.isArray(faculty.handling_paper_preferences) && faculty.handling_paper_preferences.length > 0) { %>
                                 <% faculty.handling_paper_preferences.forEach(function(preference) { %>
                                     <%= preference %><br/>
@@ -50,7 +50,7 @@
                             <% } else { %>
                                 No Courses Assigned
                             <% } %>
-                        </td>
+                        </td> -->
                         <td>
                             <button class="btn btn-primary btn-sm me-2 edit-btn mb-1"><i class="fas fa-edit"></i></button>
                             <button class="btn btn-danger btn-sm delete-btn mb-1"><i class="fas fa-trash-alt"></i></button>
@@ -93,12 +93,12 @@
                             <label for="facultyDesignation" class="form-label">Designation</label>
                             <input type="text" class="form-control" id="facultyDesignation" name="designation" required>
                         </div>
-                        <div class="mb-3">
+                        <!-- <div class="mb-3">
                             <label for="facultyPreferences" class="form-label">Handling Paper Preferences</label>
                             <div id="facultyPreferences" class="form-check">
-                                <!-- Checkboxes will be dynamically loaded here -->
+                                 Checkboxes will be dynamically loaded here 
                             </div>
-                        </div>                                                               
+                        </div> -->
                         <button type="submit" class="btn btn-primary">Add Faculty</button>
                     </form>
                 </div>
@@ -155,10 +155,10 @@
                             <label for="editDesignation" class="form-label">Designation</label>
                             <input type="text" class="form-control" id="editDesignation" name="designation" required>
                         </div>
-                        <div class="mb-3">
+                        <!-- <div class="mb-3">
                             <label for="editPreferences" class="form-label">Handling Paper Preferences</label>
                             <input type="text" class="form-control" id="editPreferences" name="handling_paper_preferences" required>
-                        </div>
+                        </div> -->
                         <button type="submit" class="btn btn-primary">Update Faculty</button>
                     </form>
                 </div>
@@ -199,7 +199,7 @@
 
         // Function to fetch departments from the database
         function fetchDepartments() {
-            const url = `/get_departments`;
+            const url = `/departments/alldept`;
             return fetch(url)
                 .then(response => response.json())
                 .then(data => data.departments)
@@ -303,16 +303,15 @@
             dept_id: document.getElementById('deptId').value,
             name: document.getElementById('facultyName').value,
             email: document.getElementById('facultyEmail').value,
-            designation: document.getElementById('facultyDesignation').value,
-            handling_paper_preferences: selectedCourseIds
+            designation: document.getElementById('facultyDesignation').value
         };
         // Send data to server
-        fetch('/add-faculty', {
+        fetch('/faculties/add-faculty', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(facultyData)
+            body: JSON.stringify({faculty: facultyData})
         })
         .then(response => {
             if (response.ok) {
@@ -365,7 +364,7 @@
         document.getElementById('confirmDelete').addEventListener('click', function() {
             if (facultyIdToDelete) {
                 // Make an AJAX request to delete the faculty member
-                fetch(`/delete_faculty/${facultyIdToDelete}`, {
+                fetch(`/faculties/delete_faculty/${facultyIdToDelete}`, {
                     method: 'DELETE'
                 })
                 .then(response => {

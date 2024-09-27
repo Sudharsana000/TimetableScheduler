@@ -187,7 +187,7 @@
         });
 
         document.getElementById('confirmDelete').addEventListener('click', function() {
-            fetch(`/rooms/${hallIdToDelete}`, {
+            fetch(`/classrooms/deleterooms/${hallIdToDelete}`, {
                 method: 'DELETE'
             }).then(response => {
                 if (response.ok) {
@@ -211,7 +211,7 @@
             const facility = document.getElementById('facility').value.split(',').map(item => item.trim());
 
             // Send data to server
-            fetch('/rooms', {
+            fetch('/classrooms/addrooms', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -265,7 +265,7 @@
             const facility = document.getElementById('editFacility').value.split(',').map(item => item.trim());
 
             // Send data to server
-            fetch(`/rooms/${currentEditHallId}`, {
+            fetch(`/classrooms/rooms/${currentEditHallId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'

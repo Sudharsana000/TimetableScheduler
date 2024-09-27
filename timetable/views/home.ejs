@@ -12,15 +12,21 @@
         <h1>Home</h1>
         <!-- Button to generate timetable -->
         <button id="generate-timetable-btn" class="btn btn-primary">Generate Timetable</button>
+        <!-- Button to store timetable -->
+        <button id="store-timetable-btn" class="btn btn-success mt-3">Store Timetable</button>
         <!-- Div to display the generated timetable -->
         <div id="timetable-display" class="mt-4"></div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     <script>
+        let generatedTimetable = null;
+
+        // Event listener to generate the timetable
         document.getElementById('generate-timetable-btn').addEventListener('click', function() {
-            fetch('/generate')
+            fetch('/timetable/generate')
                 .then(response => response.json())
                 .then(data => {
+                    generatedTimetable = data;
                     const timetableDisplay = document.getElementById('timetable-display');
                     timetableDisplay.innerHTML = generateTimetableHTML(data);
                 })
@@ -29,6 +35,32 @@
                 });
         });
 
+        // Event listener to store the generated timetable
+        document.getElementById('store-timetable-btn').addEventListener('click', function() {
+            if (generatedTimetable) {
+                fetch('/timetable/store', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ timetable: generatedTimetable })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        alert('Timetable stored successfully!');
+                    } else {
+                        alert('Failed to store the timetable.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error storing timetable:', error);
+                });
+            } else {
+                alert('Please generate the timetable first.');
+            }
+        });
+
+        // Function to generate HTML for the timetable
         function generateTimetableHTML(timetable) {
             let html = '<div class="table-responsive">';
             for (const [group, days] of Object.entries(timetable)) {

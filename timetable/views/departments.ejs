@@ -40,8 +40,101 @@
 
         .department-name {
             font-size: 1em;
-            /* font-family: 'Roboto', sans-serif; */
         }
+
+        .add-department-card {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            border: 1px dashed #aaa;
+            border-radius: 5px;
+            background-color: #f0f0f0;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .add-department-card:hover {
+            background-color: #e0e0e0;
+        }
+
+        .add-department-icon {
+            font-size: 2.5em;
+            color: #28a745;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4); /* Black w/ opacity */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 25% auto; /* 25% margin from top */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 40%;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            color: #aaa;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: #000;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .modal-header {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+        }
+
+        .modal-form input,
+        .modal-form select {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .modal-form button {
+            padding: 10px 15px;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+
+        .modal-form button:hover {
+            background-color: #218838;
+        }
+
     </style>
 </head>
 <body>
@@ -50,14 +143,91 @@
         <%- include('header') %>
 
         <div class="department-grid">
-            <% departments.forEach(department => { %>
-                <div class="department-card" onclick="location.href='/departments/<%= department.dept_id %>'">
-                    <!-- <div class="department-icon"><%= department.icon %></div> -->
+            <% departments.forEach(department => { %>  
+                <div class="department-card" onclick="location.href='/departments/<%= department.dept_id %>/timetable'">
                     <div class="department-name"><%= department.dept_name %></div>
-                </div>
+                </div>               
             <% }) %>
+
+            <!-- Add New Department Card -->
+            <div class="add-department-card" id="addDeptBtn">
+                <div class="add-department-icon">+</div>
+            </div>
         </div>
     </div>
 
+    <!-- The Modal -->
+    <div id="myModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div class="modal-header">Add New Department</div>
+            <form class="modal-form">
+                <input type="text" name="dept_id" placeholder="Department ID" required>
+                <input type="text" name="dept_name" placeholder="Department Name" required>
+                <input type="text" name="block" placeholder="Block" required>
+                <input type="number" name="floor" placeholder="Floor" required>
+                <button type="submit">Add Department</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Get the modal
+        var modal = document.getElementById("myModal");
+    
+        // Get the button that opens the modal
+        var btn = document.getElementById("addDeptBtn");
+    
+        // Get the <span> element that closes the modal
+        var span = document.getElementsByClassName("close")[0];
+    
+        // When the user clicks the button, open the modal
+        btn.onclick = function() {
+            modal.style.display = "flex";
+        }
+    
+        // When the user clicks on <span> (x), close the modal
+        span.onclick = function() {
+            modal.style.display = "none";
+        }
+    
+        // When the user clicks anywhere outside of the modal, close it
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+    
+        // Handle form submission
+        document.querySelector('.modal-form').addEventListener('submit', function(e) {
+            e.preventDefault(); // Prevent default form submission
+    
+            // Get form data
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData);
+    
+            // Send POST request using Fetch API
+            fetch('/departments/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                if (response.ok) {
+                    // If response is OK, reload the page
+                    alert('Department added successfully!');
+                    location.reload();
+                } else {
+                    return response.text().then(text => { throw new Error(text) });
+                }
+            })
+            .catch(error => {
+                console.error('Error adding department:', error);
+                alert('Failed to add department: ' + error.message);
+            });
+        });
+    </script>
 </body>
 </html>
