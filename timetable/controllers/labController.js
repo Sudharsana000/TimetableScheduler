@@ -9,8 +9,22 @@ exports.getLabs = (req, res) => {
         return res.status(500).send('Error fetching labs');
       }
       // Send the labs data as JSON
-      console.log(labs);
       res.json(labs);
     });
   };
   
+exports.addLabs = (req, res) => {
+  const { lab_id, lab_name, dept_id, block, floor, capacity, equipment, lab_type } = req.body;
+  console.log(req.body);
+  const query = `INSERT INTO labs (lab_id, lab_name, dept_id, block, floor, capacity, equipment, lab_type)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+
+  db.query(query, [lab_id, lab_name, dept_id, block, floor, capacity, JSON.stringify(equipment), JSON.stringify(lab_type)], (err, result) => {
+      if (err) {
+          console.error('Error inserting data:', err);
+          res.status(500).send('Error inserting data into the database');
+      } else {
+          res.status(200).send('Lab data added successfully');
+      }
+  });
+}
