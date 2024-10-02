@@ -3,19 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Classrooms</title>
+    <title>Rooms & Labs</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        .btn-add-classroom {
+        .btn-add-classroom, .btn-add-lab {
             background-color: #28a745;
             color: white;
         }
-        .btn-add-classroom:hover {
+        .btn-add-classroom:hover, .btn-add-lab:hover {
             background-color: #218838;
         }
         .modal-content {
             padding: 20px;
+        }
+        .section-hidden {
+            display: none;
+        }
+        .active-section {
+            display: block;
+        }
+        .switch-buttons {
+            display: flex;
+            justify-content: flex-start;
+            margin-bottom: 10px;
         }
     </style>
 </head>
@@ -23,42 +34,80 @@
     <div class="container">
         <%- include('header') %>
 
-        <div class="d-flex justify-content-between align-items-center mb-3" >
-            <h1>Rooms</h1>
-            <button class="btn btn-add-classroom btn-success" data-bs-toggle="modal" data-bs-target="#addClassroomModal">Add Classrooms</button>
+        <!-- Switch buttons for Classrooms and Labs -->
+        <div class="switch-buttons">
+            <button id="switchToClassrooms" class="btn btn-primary me-2">Classrooms</button>
+            <button id="switchToLabs" class="btn btn-secondary">Labs</button>
         </div>
 
-        <div class="mb-3">
-            <input type="text" id="searchInput" class="form-control" placeholder="Search for rooms...">
+        <!-- Classrooms Section -->
+        <div id="classroomsSection" class="active-section">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1>Classrooms</h1>
+                <button class="btn btn-add-classroom btn-success" data-bs-toggle="modal" data-bs-target="#addClassroomModal">Add Classrooms</button>
+            </div>
+
+            <div class="mb-3">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search for rooms...">
+            </div>
+
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Hall ID</th>
+                        <th>Block</th>
+                        <th>Floor</th>
+                        <th>Capacity</th>
+                        <th>Facility</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="classroomTableBody">
+                    <% classrooms.forEach(classroom => { %>
+                    <tr data-hall-id="<%= classroom.hall_id %>">
+                        <td><%= classroom.hall_id %></td>
+                        <td><%= classroom.block %></td>
+                        <td><%= classroom.floor %></td>
+                        <td><%= classroom.capacity %></td>
+                        <td><%= JSON.parse(classroom.facility).join(', ') %></td>
+                        <td>
+                            <button class="btn btn-primary btn-sm edit-btn"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-danger btn-sm delete-btn"><i class="fas fa-trash-alt"></i></button>
+                        </td>
+                    </tr>
+                    <% }); %>
+                </tbody>
+            </table>
         </div>
 
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>Hall ID</th>
-                    <th>Block</th>
-                    <th>Floor</th>
-                    <th>Capacity</th>
-                    <th>Facility</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="classroomTableBody">
-                <% classrooms.forEach(classroom => { %>
-                <tr data-hall-id="<%= classroom.hall_id %>">
-                    <td><%= classroom.hall_id %></td>
-                    <td><%= classroom.block %></td>
-                    <td><%= classroom.floor %></td>
-                    <td><%= classroom.capacity %></td>
-                    <td><%= JSON.parse(classroom.facility).join(', ') %></td>
-                    <td>
-                        <button class="btn btn-primary btn-sm edit-btn"><i class="fas fa-edit"></i></button>
-                        <button class="btn btn-danger btn-sm delete-btn"><i class="fas fa-trash-alt"></i></button>
-                    </td>
-                </tr>
-                <% }); %>
-            </tbody>
-        </table>
+        <!-- Labs Section (Initially Hidden) -->
+        <div id="labsSection" class="section-hidden">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1>Labs</h1>
+                <button class="btn btn-add-lab btn-success" data-bs-toggle="modal" data-bs-target="#addLabModal">Add Labs</button>
+            </div>
+
+            <div class="mb-3">
+                <input type="text" id="searchLabInput" class="form-control" placeholder="Search for labs...">
+            </div>
+
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Lab ID</th>
+                        <th>Lab Name</th>
+                        <th>Block</th>
+                        <th>Floor</th>
+                        <th>Department</th>
+                        <th>Capacity</th>
+                        <th>Equipment</th>
+                        <th>Lab Type</th>
+                    </tr>
+                </thead>
+                <tbody id="labTableBody">
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <!-- Add Classroom Modal -->
@@ -98,64 +147,155 @@
       </div>
     </div>
 
-    <!-- Edit Classroom Modal -->
-    <div class="modal fade" id="editClassroomModal" tabindex="-1" aria-labelledby="editClassroomModalLabel" aria-hidden="true">
+    <!-- Add Lab Modal -->
+    <div class="modal fade" id="addLabModal" tabindex="-1" aria-labelledby="addLabModalLabel" aria-hidden="true">
       <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="editClassroomModalLabel">Edit Classroom</h5>
+                <h5 class="modal-title" id="addLabModalLabel">Add Lab</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>            
           <div class="modal-body">
-            <form id="editClassroomForm">
+            <form id="addLabForm">
               <div class="mb-3">
-                <label for="editHallId" class="form-label">Hall ID</label>
-                <input type="text" class="form-control" id="editHallId" required>
+                <label for="labId" class="form-label">Lab ID</label>
+                <input type="text" class="form-control" id="labId" required>
               </div>
               <div class="mb-3">
-                <label for="editBlock" class="form-label">Block</label>
-                <input type="text" class="form-control" id="editBlock" required>
+                <label for="block" class="form-label">Block</label>
+                <input type="text" class="form-control" id="labBlock" required>
               </div>
               <div class="mb-3">
-                <label for="editFloor" class="form-label">Floor</label>
-                <input type="number" class="form-control" id="editFloor" required>
+                <label for="floor" class="form-label">Floor</label>
+                <input type="number" class="form-control" id="labFloor" required>
               </div>
               <div class="mb-3">
-                <label for="editCapacity" class="form-label">Capacity</label>
-                <input type="number" class="form-control" id="editCapacity" required>
+                <label for="capacity" class="form-label">Capacity</label>
+                <input type="number" class="form-control" id="labCapacity" required>
               </div>
               <div class="mb-3">
-                <label for="editFacility" class="form-label">Facility (comma-separated)</label>
-                <input type="text" class="form-control" id="editFacility" required>
+                <label for="equipment" class="form-label">Equipment (comma-separated)</label>
+                <input type="text" class="form-control" id="equipment" required>
               </div>
-              <button type="submit" class="btn btn-primary">Save Changes</button>
+              <button type="submit" class="btn btn-primary">Add Lab</button>
             </form>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Delete Confirmation Modal -->
-    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
+    <!-- Edit Classroom Modal -->
+    <div class="modal fade" id="editClassroomModal" tabindex="-1" aria-labelledby="editClassroomModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
           <div class="modal-content">
               <div class="modal-header">
-                  <h5 class="modal-title" id="deleteModalLabel">Confirm Deletion</h5>
+                  <h5 class="modal-title" id="editClassroomModalLabel">Edit Classroom</h5>
                   <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-              </div>
-              <div class="modal-body">
-                  Are you sure you want to delete this faculty member?
-              </div>
-              <div class="modal-footer">
-                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                  <button type="button" id="confirmDelete" class="btn btn-danger">Delete</button>
-              </div>
+              </div>            
+            <div class="modal-body">
+              <form id="editClassroomForm">
+                <div class="mb-3">
+                  <label for="editHallId" class="form-label">Hall ID</label>
+                  <input type="text" class="form-control" id="editHallId" required>
+                </div>
+                <div class="mb-3">
+                  <label for="editBlock" class="form-label">Block</label>
+                  <input type="text" class="form-control" id="editBlock" required>
+                </div>
+                <div class="mb-3">
+                  <label for="editFloor" class="form-label">Floor</label>
+                  <input type="number" class="form-control" id="editFloor" required>
+                </div>
+                <div class="mb-3">
+                  <label for="editCapacity" class="form-label">Capacity</label>
+                  <input type="number" class="form-control" id="editCapacity" required>
+                </div>
+                <div class="mb-3">
+                  <label for="editFacility" class="form-label">Facility (comma-separated)</label>
+                  <input type="text" class="form-control" id="editFacility" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+              </form>
+            </div>
           </div>
+        </div>
       </div>
-  </div>
+  
+      <!-- Delete Confirmation Modal -->
+      <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteModalLabel">Confirm Deletion</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to delete this faculty member?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" id="confirmDelete" class="btn btn-danger">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-V7qbqkP7JGVzD4Jz41UlvhjzVWjs/Z5MfuKZG56DTjKaE0VZ1nSvVTEM1sVct6I8" crossorigin="anonymous"></script>
     <script>
+        // Toggle between classrooms and labs
+        document.getElementById('switchToClassrooms').addEventListener('click', function() {
+            document.getElementById('classroomsSection').classList.add('active-section');
+            document.getElementById('classroomsSection').classList.remove('section-hidden');
+            document.getElementById('labsSection').classList.add('section-hidden');
+            document.getElementById('labsSection').classList.remove('active-section');
+            this.classList.add('btn-primary');
+            this.classList.remove('btn-secondary');
+            document.getElementById('switchToLabs').classList.add('btn-secondary');
+            document.getElementById('switchToLabs').classList.remove('btn-primary');
+        });
+
+        document.getElementById('switchToLabs').addEventListener('click', function() {
+            document.getElementById('labsSection').classList.add('active-section');
+            document.getElementById('labsSection').classList.remove('section-hidden');
+            document.getElementById('classroomsSection').classList.add('section-hidden');
+            document.getElementById('classroomsSection').classList.remove('active-section');
+            this.classList.add('btn-primary');
+            this.classList.remove('btn-secondary');
+            document.getElementById('switchToClassrooms').classList.add('btn-secondary');
+            document.getElementById('switchToClassrooms').classList.remove('btn-primary');
+
+            // Fetch labs data via AJAX when Labs tab is clicked
+            fetch('/labs/getLabs')
+            .then(response => response.json())
+            .then(data => {
+                const labTableBody = document.getElementById('labTableBody');
+                labTableBody.innerHTML = ''; // Clear any existing table rows
+
+                data.forEach(lab => {
+                    // Create table rows dynamically
+                    const row = `
+                        <tr data-lab-id="${lab.lab_id}">
+                            <td>${lab.lab_id}</td>
+                            <td>${lab.lab_name}</td>
+                            <td>${lab.block}</td>
+                            <td>${lab.floor}</td>
+                            <td>${lab.department}</td>
+                            <td>${lab.capacity}</td>
+                            <td>${JSON.parse(lab.equipment).join(', ')}</td>
+                            <td>
+                                <button class="btn btn-primary btn-sm edit-lab-btn"><i class="fas fa-edit"></i></button>
+                                <button class="btn btn-danger btn-sm delete-lab-btn"><i class="fas fa-trash-alt"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                    labTableBody.innerHTML += row; // Add the row to the table body
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching labs:', error);
+            });
+        });
+        
         let hallIdToDelete;
         let rowToDelete;
         let currentEditHallId;
@@ -163,6 +303,22 @@
         document.getElementById('searchInput').addEventListener('keyup', function() {
         var input = this.value.toLowerCase().trim();
         var tableRows = document.getElementById('classroomTableBody').getElementsByTagName('tr');
+
+        Array.from(tableRows).forEach(row => {
+            var cells = row.getElementsByTagName('td');
+            var match = Array.from(cells).some(cell => {
+                var cellText = cell.innerText.toLowerCase().trim();
+                var isMatch = cellText.includes(input);
+                console.log(`Cell Text: "${cellText}", Search Input: "${input}", Match: ${isMatch}`);
+                return isMatch;
+            });
+            row.style.display = match ? '' : 'none';
+        });
+    });
+
+    document.getElementById('searchLabInput').addEventListener('keyup', function() {
+        var input = this.value.toLowerCase().trim();
+        var tableRows = document.getElementById('labTableBody').getElementsByTagName('tr');
 
         Array.from(tableRows).forEach(row => {
             var cells = row.getElementsByTagName('td');
@@ -290,6 +446,7 @@
                 alert('An error occurred: ' + error.message);
             });
         });
+
     </script>
 </body>
 </html>

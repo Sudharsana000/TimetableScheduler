@@ -15,7 +15,6 @@ exports.getClassrooms = (req, res) => {
 // Add classroom
 exports.addClassroom = (req, res) => {
   const { hall_id, block, floor, capacity, facility } = req.body;
-  console.log(hall_id," ",block, " ", floor," ", capacity," ", facility);
   const query = 'INSERT INTO classrooms (hall_id, block, floor, capacity, facility) VALUES (?, ?, ?, ?, ?)';
   db.query(query, [hall_id, block, floor, capacity, JSON.stringify(facility)], (error, results) => {
     if (error) {

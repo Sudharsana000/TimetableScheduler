@@ -7,6 +7,7 @@ const facultyRoutes = require('./routes/facultyRoutes');
 const departmentRoutes = require('./routes/departmentRoutes');
 const userRoutes = require('./routes/userRoutes');
 const timetableRoutes = require('./routes/timetableRoutes');
+const labRoutes = require('./routes/labRoutes');
 
 const app = express();
 
@@ -21,6 +22,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', userRoutes);  // Login route
 app.use('/homescreen', userRoutes);
 app.use('/classrooms', classroomRoutes);
+app.use('/labs', labRoutes);
 app.use('/faculties', facultyRoutes);
 app.use('/departments', departmentRoutes);
 app.use('/timetable', timetableRoutes);

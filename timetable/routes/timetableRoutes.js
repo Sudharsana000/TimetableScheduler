@@ -31,26 +31,10 @@ router.get('/generate', (req, res) => {
         }
     });
 });
-
-const getOrCreateId = async (table, value) => {
-  return new Promise((resolve, reject) => {
-      db.query(`SELECT id FROM \`${table}\` WHERE name = ?`, [value], (err, result) => {
-          if (err) return reject(err);
-          if (result.length > 0) {
-              resolve(result[0].id);
-          } else {
-              db.query(`INSERT INTO \`${table}\` (name) VALUES (?)`, [value], (err, result) => {
-                  if (err) return reject(err);
-                  resolve(result.insertId);
-              });
-          }
-      });
-  });
-};
   
-  // Route to add timetable data
-  router.post('/store', async (req, res) => {
-    const timetablesData = req.body; // This will contain the 'timetable' key
+// Route to add timetable data
+router.post('/store', async (req, res) => {
+  const timetablesData = req.body; // This will contain the 'timetable' key
   
     // Check if timetablesData['timetable'] exists and is an object
     if (!timetablesData || !timetablesData['timetable'] || typeof timetablesData['timetable'] !== 'object') {
@@ -62,29 +46,29 @@ const getOrCreateId = async (table, value) => {
   
     // Process each year_group entry in the timetablesData['timetable']
     const promises = Object.keys(timetablesData['timetable']).map((year_group) => {
-      const timetable = timetablesData['timetable'][year_group]; // The timetable for the current year_group
-  
-      return new Promise((resolve, reject) => {
-        // Store the timetable data as a JSON string in the database
-        db.query(query, [year_group, JSON.stringify(timetable), JSON.stringify(timetable)], (err, result) => {
-          if (err) {
-            return reject(err);
-          }
-          resolve(result);
-        });
+    const timetable = timetablesData['timetable'][year_group]; // The timetable for the current year_group
+
+    return new Promise((resolve, reject) => {
+      // Store the timetable data as a JSON string in the database
+      db.query(query, [year_group, JSON.stringify(timetable), JSON.stringify(timetable)], (err, result) => {
+        if (err) {
+          return reject(err);
+        }
+        resolve(result);
       });
     });
-  
-    // Execute all database operations in parallel
-    Promise.all(promises)
-      .then(() => {
-        res.send('Timetables added/updated successfully');
-      })
-      .catch((err) => {
-        console.error('Error inserting/updating timetables:', err.message);
-        res.status(500).send('Error inserting/updating timetables');
-      });
   });
+  
+  // Execute all database operations in parallel
+  Promise.all(promises)
+    .then(() => {
+      res.send('Timetables added/updated successfully');
+    })
+    .catch((err) => {
+      console.error('Error inserting/updating timetables:', err.message);
+      res.status(500).send('Error inserting/updating timetables');
+    });
+});
   
 
 module.exports = router;
