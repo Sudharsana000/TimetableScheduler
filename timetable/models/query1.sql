@@ -1,3 +1,12 @@
+CREATE TABLE classrooms (
+    hall_id VARCHAR(4) PRIMARY KEY,
+    block VARCHAR(5),
+    floor INT,
+    capacity INT,
+    facility JSON
+);
+
+
 CREATE TABLE users (
     email VARCHAR(200) PRIMARY KEY,
     password VARCHAR(50),
@@ -50,8 +59,14 @@ CREATE TABLE faculty (
     name VARCHAR(100),
     email VARCHAR(100),
     designation VARCHAR(50),
-    FOREIGN KEY (dept_id) REFERENCES departme
+    FOREIGN KEY (dept_id) REFERENCES department(dept_id) 
 );
+
+create table timetable (
+	year_group varchar(255) primary key,
+    timetable_data JSON
+);
+
 
 
 select * from labs;

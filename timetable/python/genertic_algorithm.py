@@ -1,5 +1,7 @@
 import random
 import json
+from db_connection import connect_to_db, close_connection
+from queries import fetch_all_courses
 
 faculty_class_count = {}
 
@@ -311,5 +313,17 @@ add_regular_courses(class2, regular_courses, regular_faculties, regular_classes_
 #     for hour in range(1, hours_per_day+1):
 #         if (class1[day][hour]['Faculty'] == class2[day][hour]['Faculty']) or (class1[day][hour]['Classroom'] == class2[day][hour]['Classroom']):
 #             print(class1[day][hour],"----", class2[day][hour])
-json_output = json.dumps({"G1": class1, "G2": class2})
-print(json_output)
+# json_output = json.dumps({"G1": class1, "G2": class2})
+# print(json_output)
+
+connection = connect_to_db()
+
+if connection:
+    # Fetch and print all courses
+    courses = fetch_all_courses(connection)
+    print("All Courses:")
+    for course in courses:
+        print(course)
+
+    # Close the connection
+    close_connection(connection)
