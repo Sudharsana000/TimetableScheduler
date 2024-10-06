@@ -122,7 +122,7 @@ days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
 labs = get_labs()
 department_programme_map = get_department_programme_map()
 
-faculties_allocation = {
+faculties = {
     "23MX36": ["Bhama"],
     "23MX37": ["Geetha"],
     "23MX16": ["Geetha", "Umarani"],
