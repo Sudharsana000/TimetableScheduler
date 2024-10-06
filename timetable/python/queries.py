@@ -272,3 +272,46 @@ def get_groups_by_programme(is_odd_semester):
         if connection.is_connected():
             cursor.close()
             connection.close()
+
+def get_faculty_allocation_by_course():
+    connection = create_db_connection()  # Assuming you have a function to create a DB connection
+    if connection is None:
+        print("Failed to connect to the database.")
+        return {}
+
+    try:
+        cursor = connection.cursor()
+
+        # Query to fetch faculty allocations for each course (only faculty_id)
+        faculty_query = """
+            SELECT course_id, faculty_id
+            FROM faculty_allocation
+            ORDER BY course_id, faculty_id;
+        """
+
+        cursor.execute(faculty_query)
+        faculty_data = cursor.fetchall()
+
+        # Dictionary to store faculty IDs by course
+        faculty_by_course = {}
+
+        for row in faculty_data:
+            course_id = row[0]
+            faculty_id = row[1]
+
+            # Initialize the list for the course if not already done
+            if course_id not in faculty_by_course:
+                faculty_by_course[course_id] = []
+
+            # Append the faculty ID to the course's list
+            faculty_by_course[course_id].append(faculty_id)
+
+        return faculty_by_course
+
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        return {}
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()

@@ -53,12 +53,51 @@ CREATE TABLE Course (
 
 select * from course;
 select * from programme;
+drop table faculty_allocation;
 
-create table faculty_allocaion(
+create table faculty_allocation(
 	faculty_id varchar(8) not null,
     course_id varchar(10) not null,
-    FOREIGN KEY (faculty_id) REFERENCES faculty(faculty_id) ON DELETE CASCADE,
-    FOREIGN KEY (course_id) REFERENCES course(course_id) ON DELETE CASCADE,
+    FOREIGN KEY (faculty_id) REFERENCES faculty(faculty_id),
+    FOREIGN KEY (course_id) REFERENCES course(course_id),
     primary key(faculty_id, course_id)
 );
+
+INSERT INTO faculty (faculty_id, dept_id, name, email, designation) VALUES
+('CA001', 'CA', 'Dr. Chitra A', 'ac.mca@psgtech.ac.in', 'Professor & Head'),
+('CA002', 'CA', 'Dr. Manavalan R', 'vwm.mca@psgtech.ac.in', 'Associate Professor'),
+('CA003', 'CA', 'Mrs. Kalyani A', 'akk.mca@psgtech.ac.in', 'Assistant Professor(Sl. Gr.)'),
+('CA004', 'CA', 'Dr. Ilayaraja N', 'nir.mca@psgtech.ac.in', 'Assistant Professor'),
+('CA005', 'CA', 'Dr. Sankar A', 'dras.mca@psgtech.ac.in', 'Professor'),
+('CA006', 'CA', 'Dr. Geetha N', 'sng.mca@psgtech.ac.in', 'Assistant Professor(Sl. Gr.)'),
+('CA007', 'CA', 'Dr. Bhama S', 'sba.mca@psgtech.ac.in', 'Assistant Professor(Sl. Gr.)'),
+('CA008', 'CA', 'Dr. Subathra M', 'msa.mca@psgtech.ac.in', 'Assistant Professor(Sl. Gr.)'),
+('CA009', 'CA', 'Mr. Sundar C', 'csr.mca@psgtech.ac.in', 'Assistant Professor(Sl. Gr.)'),
+('CA010', 'CA', 'Dr. Umarani V', 'vur.mca@psgtech.ac.in', 'Assistant Professor(Sl. Gr.)'),
+('CA011', 'CA', 'Mrs. Gowri Thangam J', 'jgt.mca@psgtech.ac.in', 'Assistant Professor(Sr. Gr.)'),
+('CA012', 'CA', 'Mrs. Gayathri K', 'kgi.mca@psgtech.ac.in', 'Assistant Professor(Sr. Gr.)'),
+('CA013', 'CA', 'Mrs. Manoranjitham A', 'amr.mca@psgtech.ac.in', 'Assistant Professor(Sl. Gr.)'),
+('CA014', 'CA', 'Dr. Venkatesan V', 'vvn.mca@psgtech.ac.in', 'Assistant Professor(Sl. Gr.)'),
+('CA015', 'CA', 'Mrs. Rajeswari N', 'nrj.mca@psgtech.ac.in', 'Assistant Professor(Sr. Gr.)'),
+('CA016', 'CA', 'Mrs. Aarthi Mai A S', 'asa.mca@psgtech.ac.in', 'Assistant Professor'),
+('CA017', 'CA', 'Dr. Bhuvaneswari A', 'abh.mca@psgtech.ac.in', 'Assistant Professor');
+
+INSERT INTO faculty_allocation (course_id, faculty_id) VALUES
+('23MX36', 'CA007'), -- Bhama S
+('23MX37', 'CA006'), -- Geetha N
+('23MX16', 'CA006'), -- Geetha N
+('23MX16', 'CA010'), -- Umarani V
+('23MX17', 'CA012'), -- Gayathri K
+('23MX18', 'CA009'), -- Sundar C
+('23MX31', 'CA007'), -- Bhama S
+('23MX11', 'CA005'), -- Shankar A
+('23MX11', 'CA009'), -- Sundar C
+('23MX12', 'CA006'), -- Geetha N
+('23MX12', 'CA010'), -- Umarani V
+('23MX14', 'CA004'), -- Ilayaraja N
+('23MX14', 'CA006'), -- Geetha N
+('23MX13', 'CA001'), -- Chitra A
+('23MX13', 'CA012'), -- Gayathri K
+('23MX15', 'CA003'), -- Kalyani A
+('23MX19', 'CA004'); -- Ilayaraja N
 
