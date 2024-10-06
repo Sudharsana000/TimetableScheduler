@@ -33,11 +33,12 @@ create table GroupTable(
     programme_year int not null,
 	programme_id varchar(10) not null,
     group_strength int not null,
-    primary key(programme_year, programme_id, year_group),
+    primary key(programme_year, programme_id, yeargrouptable_group),
     FOREIGN KEY (programme_year, programme_id) REFERENCES yearTable(programme_year, programme_id) ON DELETE CASCADE
 );
 
 select * from GroupTable;
+select * from labs;
 
 CREATE TABLE Course (
     course_id varchar(10) PRIMARY KEY,  -- Unique ID for each course
@@ -51,4 +52,13 @@ CREATE TABLE Course (
 );
 
 select * from course;
+select * from programme;
+
+create table faculty_allocaion(
+	faculty_id varchar(8) not null,
+    course_id varchar(10) not null,
+    FOREIGN KEY (faculty_id) REFERENCES faculty(faculty_id) ON DELETE CASCADE,
+    FOREIGN KEY (course_id) REFERENCES course(course_id) ON DELETE CASCADE,
+    primary key(faculty_id, course_id)
+);
 

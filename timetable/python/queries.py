@@ -76,3 +76,90 @@ def get_courses():
         if connection.is_connected():
             cursor.close()
             connection.close()
+
+
+# Function to get labs grouped by dept_id along with department name and their strength
+def get_labs():
+    connection = create_db_connection()
+    if connection is None:
+        print("Failed to connect to the database.")
+        return {}
+
+    try:
+        cursor = connection.cursor()
+
+        # Query to fetch labs with their corresponding department and strength
+        lab_query = """
+            SELECT l.lab_id, l.lab_name, l.capacity, d.dept_id, d.dept_name
+            FROM labs l
+            JOIN department d ON l.dept_id = d.dept_id
+        """
+        cursor.execute(lab_query)
+        labs = cursor.fetchall()
+
+        # Dictionary to store labs grouped by dept_id with department_name
+        labs_by_department = {}
+
+        for lab in labs:
+            lab_id, lab_name, capacity, dept_id, dept_name = lab
+
+            # Initialize the department if not already in the dictionary
+            if dept_id not in labs_by_department:
+                labs_by_department[dept_id] = {
+                    'labs': []
+                }
+
+            # Append the lab information under the correct department
+            labs_by_department[dept_id]['labs'].append({
+                'lab_id': lab_id,
+                'lab_name': lab_name,
+                'capacity': capacity
+            })
+
+        return labs_by_department
+
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        return {}
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+def get_department_programme_map():
+    connection = create_db_connection()
+    if connection is None:
+        print("Failed to connect to the database.")
+        return {}
+
+    try:
+        cursor = connection.cursor()
+
+        # Query to fetch department and programme mappings
+        department_programme_query = """
+            SELECT dept_id, GROUP_CONCAT(programme_id) AS programme_ids
+            FROM programme
+            GROUP BY dept_id;
+        """
+        cursor.execute(department_programme_query)
+        department_programmes = cursor.fetchall()
+
+        # Dictionary to store the mapping of dept_id to programme_ids
+        department_programme_map = {}
+
+        for row in department_programmes:
+            dept_id = row[0]
+            programme_ids = row[1].split(',')  # Split the concatenated string into a list
+
+            # Store the result in the dictionary
+            department_programme_map[dept_id] = programme_ids
+
+        return department_programme_map
+
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        return {}
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()

@@ -15,7 +15,6 @@ exports.getLabs = (req, res) => {
   
 exports.addLabs = (req, res) => {
   const { lab_id, lab_name, dept_id, block, floor, capacity, equipment, lab_type } = req.body;
-  console.log(req.body);
   const query = `INSERT INTO labs (lab_id, lab_name, dept_id, block, floor, capacity, equipment, lab_type)
                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
 
