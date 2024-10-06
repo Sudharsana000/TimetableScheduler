@@ -280,5 +280,6 @@ add_regular_classes(programme_timelines, courses_by_programme, faculties, classr
 
 
 # Output the timetable for all departments and semesters as a JSON string
-# json_output = json.dumps(programme_timelines)
-# print(json_output)
+
+json_output = json.dumps(programme_timelines)
+print(json_output)
