@@ -316,14 +316,3 @@ add_regular_courses(class2, regular_courses, regular_faculties, regular_classes_
 # json_output = json.dumps({"G1": class1, "G2": class2})
 # print(json_output)
 
-connection = connect_to_db()
-
-if connection:
-    # Fetch and print all courses
-    courses = fetch_all_courses(connection)
-    print("All Courses:")
-    for course in courses:
-        print(course)
-
-    # Close the connection
-    close_connection(connection)

@@ -1,10 +1,13 @@
 use timetable_db;
 
-ALTER TABLE department
-ADD dept_type ENUM('service', 'non-service', 'both') NOT NULL;
-
-ALTER TABLE Department
-MODIFY dept_id VARCHAR(10);  -- Or any other appropriate length
+create table department (
+	dept_id varchar(10) primary key,
+    dept_name varchar(255) not null,
+    block varchar(1) not null,
+    floor int not null,
+    dept_type ENUM('service', 'non-service', 'both') NOT NULL
+);
+select * from department;
 
 CREATE TABLE Programme (
     programme_id varchar(10) PRIMARY KEY,  -- Unique ID for each programme
@@ -21,7 +24,7 @@ create table yearTable(
     programme_id varchar(10) not null,
     primary key(programme_year, programme_id),
     FOREIGN KEY (programme_id) REFERENCES Programme(programme_id) ON DELETE CASCADE
-    );
+);
 
 select * from yearTable;
 
@@ -35,15 +38,6 @@ create table GroupTable(
 );
 
 select * from GroupTable;
-
-CREATE TABLE Course (
-    course_id varchar(10) PRIMARY KEY,  -- Unique ID for each course
-    course_name VARCHAR(100) NOT NULL,  -- Name of the course
-    course_type ENUM('Core', 'Elective', 'Lab') NOT NULL,  -- Type of the course
-    hours_per_week INT NOT NULL  -- Number of hours per week for the course
-);
-
-drop table Course;
 
 CREATE TABLE Course (
     course_id varchar(10) PRIMARY KEY,  -- Unique ID for each course

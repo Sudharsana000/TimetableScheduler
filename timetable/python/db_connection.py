@@ -1,22 +1,15 @@
 import mysql.connector
-from config import DB_CONFIG
 
-def connect_to_db():
+# Function to create and return a database connection
+def create_db_connection():
     try:
         connection = mysql.connector.connect(
-            host=DB_CONFIG['host'],
-            user=DB_CONFIG['user'],
-            password=DB_CONFIG['password'],
-            database=DB_CONFIG['database']
+            host='localhost',  # Replace with your host
+            user='root',       # Replace with your MySQL username
+            password='chuchu',  # Replace with your MySQL password
+            database='timetable_db'  # Replace with your MySQL database name
         )
-        if connection.is_connected():
-            print("Connected to the database")
-            return connection
+        return connection
     except mysql.connector.Error as err:
         print(f"Error: {err}")
         return None
-
-def close_connection(connection):
-    if connection.is_connected():
-        connection.close()
-        print("Database connection closed")

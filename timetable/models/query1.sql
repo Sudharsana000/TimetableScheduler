@@ -68,5 +68,5 @@ create table timetable (
 );
 
 
-
+select * from users;
 select * from labs;
