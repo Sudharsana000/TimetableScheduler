@@ -1,6 +1,6 @@
 import random
 import json
-from queries import get_courses, get_department_programme_map, get_labs
+from queries import get_courses, get_department_programme_map, get_labs, get_classrooms
 
 def structure_timetable(days, hours_per_day):
     timetable = {}
@@ -117,23 +117,153 @@ def add_lab_courses(programme_timelines, programme_data, faculties, labs, depart
                     available_days.remove(day)
                     unallocated_classes_per_week -= 1
 
+def add_regular_classes(programme_timelines, programme_data, faculties, classrooms, hours_per_day, existing_classes=None):
+    # Initialize availability trackers for classrooms and faculties
+    classroom_availability = {
+        day: {hour: list(classrooms) for hour in range(1, hours_per_day + 1)}
+        for day in list(list(programme_timelines.values())[0].values())[0].keys()  # Use any class timetable to get day list
+    }
+
+    faculty_availability = {}
+    selected_faculties = {}  # Track the selected faculty for each course
+
+    # Prepare classroom availability for regular classes
+    for day in classroom_availability.keys():
+        faculty_availability[day] = {}
+        for hour in range(1, hours_per_day + 1):
+            faculty_availability[day][hour] = {}
+
+            # Loop through all programmes and their respective semesters
+            for programme, semesters in programme_data.items():
+                for sem in semesters.keys():
+                    for course in programme_data[programme][sem]['regular_courses']:
+                        course_id = course['course_id']
+                        if course_id in faculties:
+                            faculty_availability[day][hour][course_id] = list(faculties[course_id])
+
+    # Check and remove availability based on existing lab classes or already allocated courses
+    if existing_classes:
+        for existing_class in existing_classes:
+            for day in existing_class:
+                for hour in existing_class[day]:
+                    # Classroom conflict check for all timetables
+                    existing_classroom = existing_class[day][hour]["Classroom"]
+                    if existing_classroom:
+                        if isinstance(existing_classroom, list):
+                            for classroom in existing_classroom:
+                                if classroom in classroom_availability[day][hour]:
+                                    classroom_availability[day][hour].remove(classroom)
+                        else:
+                            if existing_classroom in classroom_availability[day][hour]:
+                                classroom_availability[day][hour].remove(existing_classroom)
+
+                    # Faculty conflict check for all timetables
+                    existing_faculty = existing_class[day][hour]["Faculty"]
+                    if existing_faculty:
+                        if isinstance(existing_faculty, list):
+                            # If faculty is a list, remove all faculties in the list from availability
+                            for faculty in existing_faculty:
+                                for course in faculty_availability[day][hour]:
+                                    if faculty in faculty_availability[day][hour][course]:
+                                        faculty_availability[day][hour][course].remove(faculty)
+                        else:
+                            # If it's a single faculty, remove it from availability
+                            for course in faculty_availability[day][hour]:
+                                if existing_faculty in faculty_availability[day][hour][course]:
+                                    faculty_availability[day][hour][course].remove(existing_faculty)
+
+    # Track day-hour combinations for regular class allocation
+    day_hour_combinations = [
+        (day, int(hour))
+        for day in classroom_availability.keys()
+        for hour in range(1, hours_per_day + 1)
+        if hour % 2 == 1 or hour != hours_per_day  # Avoid lab blocks (or avoid slots where lab courses are)
+    ]
+
+    for programme, sem_timelines in programme_timelines.items():
+        for sem, class_obj in sem_timelines.items():
+            regular_courses = programme_data[programme][sem]['regular_courses']
+
+            for course in regular_courses:
+                course_id = course['course_id']
+                unallocated_classes_per_week = course['hours_per_week']
+
+                available_days = list(class_obj.keys())
+
+                while unallocated_classes_per_week > 0:
+                    available_hours = [
+                        (d, hour)
+                        for d, hour in day_hour_combinations
+                        if d in available_days
+                        and class_obj[d][hour]["Course"] is None  # Check if slot is empty
+                        and classroom_availability[d][hour]  # Classroom available
+                        and course_id in faculty_availability[d][hour]  # Faculty available
+                        and faculty_availability[d][hour][course_id]  # Faculty not already allocated
+                    ]
+
+                    if not available_hours:
+                        print(f"No available slots for course '{course_id}' in semester {sem} for programme {programme}")
+                        break
+
+                    # Choose a random available day-hour slot
+                    random_available_hour = random.choice(available_hours)
+                    day, hour = random_available_hour
+
+                    # Select classroom for this course
+                    selected_classroom = classroom_availability[day][hour].pop(0)
+                    classroom_info = f"{selected_classroom['hall_id']}"
+
+                    # Select faculty for this course (if not already selected)
+                    if course_id not in selected_faculties:
+                        selected_faculty = faculty_availability[day][hour][course_id].pop(0)
+                        selected_faculties[course_id] = selected_faculty
+                    else:
+                        selected_faculty = selected_faculties[course_id]
+
+                    # Assign regular course to the class timetable
+                    class_obj[day][hour] = {
+                        "Classroom": classroom_info,
+                        "Faculty": selected_faculty,
+                        "Course": course_id
+                    }
+
+                    # Remove faculty from availability once allocated
+                    if not faculty_availability[day][hour][course_id]:
+                        del faculty_availability[day][hour][course_id]
+
+                    # Remove from available day-hour slots and decrement the unallocated count
+                    day_hour_combinations.remove((day, hour))
+                    available_days.remove(day)
+                    unallocated_classes_per_week -= 1
+
 # Main code to generate timetables for all departments and their respective semesters
 days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
 labs = get_labs()
+classrooms = get_classrooms()
+is_odd_semester = True
+
 department_programme_map = get_department_programme_map()
 
-faculties_allocation = {
+faculties = {
     "23MX36": ["Bhama"],
     "23MX37": ["Geetha"],
     "23MX16": ["Geetha", "Umarani"],
     "23MX17": ["Gayathri"],
-    "23MX18": ["Sundar"]
+    "23MX18": ["Sundar"],
+    "23MX31": ["Bhama"],
+    "23MX32": ["Rathika"],
+    "23MX11": ["Shankar", "Sundar"],
+    "23MX12": ["Geetha", "Umarani"],
+    "23MX14": ["Ilayaraja", "Geetha"],
+    "23MX13": ["Chitra", "Gayathri"],
+    "23MX15": ["Kalyani"],
+    "23MX19": ["Ilayaraja"]
 }
 
 hours_per_day = 7
 
 # Example: Get data from the database
-courses_by_programme = get_courses()  # This now contains multiple departments
+courses_by_programme = get_courses(is_odd_semester )  # This now contains multiple departments
 
 # Dynamically generate timetables for all departments and their respective semesters
 programme_timelines = {
@@ -146,7 +276,9 @@ programme_timelines = {
 
 # Add lab courses for all departments and their respective semesters
 add_lab_courses(programme_timelines, courses_by_programme, faculties, labs, department_programme_map, hours_per_day)
+add_regular_classes(programme_timelines, courses_by_programme, faculties, classrooms, hours_per_day)
+
 
 # Output the timetable for all departments and semesters as a JSON string
-json_output = json.dumps(programme_timelines)
-print(json_output)
+# json_output = json.dumps(programme_timelines)
+# print(json_output)

@@ -2,7 +2,7 @@ import mysql.connector
 from db_connection import create_db_connection
 
 # Function to get courses from the 'course' table dynamically based on programme and semester
-def get_courses():
+def get_courses(is_odd_semester):
     connection = create_db_connection()
     if connection is None:
         print("Failed to connect to the database.")
@@ -22,8 +22,18 @@ def get_courses():
         for programme in programmes:
             programme_id = programme[0]
 
-            # Query to fetch all unique semester_numbers for this programme
-            semester_query = f"SELECT DISTINCT semester_number FROM course WHERE programme_id = '{programme_id}'"
+            # Determine if we're fetching odd or even semesters
+            if is_odd_semester:
+                semester_filter = "MOD(semester_number, 2) = 1"  # Odd semesters
+            else:
+                semester_filter = "MOD(semester_number, 2) = 0"  # Even semesters
+
+            # Query to fetch all unique semester_numbers for this programme, filtered by odd or even
+            semester_query = f"""
+                SELECT DISTINCT semester_number 
+                FROM course 
+                WHERE programme_id = '{programme_id}' AND {semester_filter}
+            """
             cursor.execute(semester_query)
             semesters = cursor.fetchall()
 
@@ -77,7 +87,6 @@ def get_courses():
             cursor.close()
             connection.close()
 
-
 # Function to get labs grouped by dept_id along with department name and their strength
 def get_labs():
     connection = create_db_connection()
@@ -126,6 +135,48 @@ def get_labs():
             cursor.close()
             connection.close()
 
+# Function to get labs grouped by dept_id along with department name and their strength
+def get_classrooms():
+    connection = create_db_connection()
+    if connection is None:
+        print("Failed to connect to the database.")
+        return {}
+
+    try:
+        cursor = connection.cursor()
+
+        # Query to fetch classrooms with block, floor, and capacity details
+        classroom_query = """
+            SELECT hall_id, block, floor, capacity
+            FROM classrooms
+        """
+        cursor.execute(classroom_query)
+        classrooms = cursor.fetchall()
+
+        # List to store classroom details
+        classroom_list = []
+
+        for classroom in classrooms:
+            hall_id, block, floor, capacity = classroom
+
+            # Append each classroom's information as a dictionary
+            classroom_list.append({
+                'hall_id': hall_id,
+                'block': block,
+                'floor': floor,
+                'capacity': capacity
+            })
+
+        return classroom_list
+
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        return []
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
 def get_department_programme_map():
     connection = create_db_connection()
     if connection is None:
@@ -155,6 +206,64 @@ def get_department_programme_map():
             department_programme_map[dept_id] = programme_ids
 
         return department_programme_map
+
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        return {}
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+def get_groups_by_programme(is_odd_semester):
+    connection = create_db_connection()
+    if connection is None:
+        print("Failed to connect to the database.")
+        return {}
+
+    try:
+        cursor = connection.cursor()
+
+        # Query to fetch groups along with the programme information
+        group_query = """
+            SELECT programme_id, year_group, programme_year, group_strength
+            FROM groupTable
+            ORDER BY programme_id, programme_year, year_group;
+        """
+
+        cursor.execute(group_query)
+        group_data = cursor.fetchall()
+
+        # Dictionary to store groups by programme and semester
+        groups_by_programme = {}
+
+        for row in group_data:
+            programme_id = row[0]
+            year_group = row[1]
+            programme_year = row[2]
+            group_strength = row[3]
+
+            # Calculate the semester number based on programme_year and is_odd_semester
+            if is_odd_semester:
+                semester_number = 2 * programme_year - 1  # Odd semester
+            else:
+                semester_number = 2 * programme_year  # Even semester
+
+            # Initialize the dictionary for the programme if not already done
+            if programme_id not in groups_by_programme:
+                groups_by_programme[programme_id] = {}
+
+            # Initialize the list for the semester if not already done
+            if semester_number not in groups_by_programme[programme_id]:
+                groups_by_programme[programme_id][semester_number] = []
+
+            # Append group data for each semester under the programme
+            groups_by_programme[programme_id][semester_number].append({
+                "year_group": year_group,
+                "group_strength": group_strength
+            })
+
+        return groups_by_programme
 
     except mysql.connector.Error as err:
         print(f"Error: {err}")
