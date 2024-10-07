@@ -63,43 +63,48 @@
         // Function to generate HTML for the timetable
         function generateTimetableHTML(timetable) {
             let html = '<div class="table-responsive">';
-            
+
             // Loop through departments (e.g., MCA)
             for (const [department, semesters] of Object.entries(timetable)) {
                 html += `<h2>Department: ${department}</h2>`;
 
                 // Loop through semesters (e.g., 1, 2, 3)
-                for (const [semester, days] of Object.entries(semesters)) {
+                for (const [semester, groups] of Object.entries(semesters)) {
                     html += `<h3>Semester: ${semester}</h3>`;
-                    html += '<table class="table table-bordered">';
-                    html += '<thead><tr><th>Day</th>';
 
-                    // Generate hour headers
-                    const hours = Array.from({ length: 7 }, (_, i) => i + 1);
-                    hours.forEach(hour => {
-                        html += `<th>Hour ${hour}</th>`;
-                    });
+                    // Loop through groups (e.g., Group_1, Group_2)
+                    for (const [group, days] of Object.entries(groups)) {
+                        html += `<h4>Group: ${group}</h4>`;
+                        html += '<table class="table table-bordered">';
+                        html += '<thead><tr><th>Day</th>';
 
-                    html += '</tr></thead><tbody>';
-
-                    // Loop through days (Monday to Friday)
-                    for (const day of ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']) {
-                        html += `<tr><td>${day}</td>`;
-                        
-                        // Loop through periods (hours)
+                        // Generate hour headers (1 to 7)
+                        const hours = Array.from({ length: 7 }, (_, i) => i + 1);
                         hours.forEach(hour => {
-                            const details = days[day] && days[day][hour] ? days[day][hour] : {};
-                            const course = details.Course || '';
-                            const faculty = details.Faculty || '';
-                            const classroom = details.Classroom || '';
-
-                            html += `<td><strong>Course:</strong> ${course}<br><strong>Faculty:</strong> ${faculty}<br><strong>Classroom:</strong> ${classroom}</td>`;
+                            html += `<th>Hour ${hour}</th>`;
                         });
 
-                        html += '</tr>';
-                    }
+                        html += '</tr></thead><tbody>';
 
-                    html += '</tbody></table>';
+                        // Loop through days (Monday to Friday)
+                        for (const day of ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']) {
+                            html += `<tr><td>${day}</td>`;
+                            
+                            // Loop through periods (hours)
+                            hours.forEach(hour => {
+                                const details = days[day] && days[day][hour] ? days[day][hour] : {};
+                                const course = details.Course || '';
+                                const faculty = details.Faculty || '';
+                                const classroom = details.Classroom || '';
+
+                                html += `<td><strong>Course:</strong> ${course}<br><strong>Faculty:</strong> ${faculty}<br><strong>Classroom:</strong> ${classroom}</td>`;
+                            });
+
+                            html += '</tr>';
+                        }
+
+                        html += '</tbody></table>';
+                    }
                 }
             }
             html += '</div>';

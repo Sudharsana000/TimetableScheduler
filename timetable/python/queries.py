@@ -315,3 +315,88 @@ def get_faculty_allocation_by_course():
         if connection.is_connected():
             cursor.close()
             connection.close()
+
+def get_elective_allocation_by_semester(is_odd_semester=True): 
+    connection = create_db_connection()  # Assuming you have a function to create a DB connection
+    if connection is None:
+        print("Failed to connect to the database.")
+        return {}
+
+    try:
+        cursor = connection.cursor()
+
+        # Query to fetch electives from odd semesters and group by elective_no and programme_id
+        elective_query = """
+            SELECT 
+                ea.course_id, 
+                ea.programme_id, 
+                ea.semester_number,  -- Include semester_number
+                ea.elective_no,
+                p.programme_name,
+                c.course_name,
+                c.hours_per_week,
+                fa.faculty_id
+            FROM 
+                Elective_allocation ea
+            JOIN 
+                Course c ON ea.course_id = c.course_id
+            JOIN 
+                Programme p ON ea.programme_id = p.programme_id
+            JOIN 
+                faculty_allocation fa ON ea.course_id = fa.course_id
+            JOIN 
+                Faculty f ON fa.faculty_id = f.faculty_id
+            WHERE 
+                MOD(ea.semester_number, 2) = %s
+            ORDER BY 
+                ea.programme_id, ea.semester_number, ea.elective_no, ea.course_id;
+        """
+
+        # Determine whether we want odd semesters or not
+        semester_type = 1 if is_odd_semester else 0
+
+        cursor.execute(elective_query, (semester_type,))
+        elective_data = cursor.fetchall()
+
+        # Dictionary to store electives grouped by programme_id and semester_number
+        electives_by_programme = {}
+
+        for row in elective_data:
+            course_id = row[0]
+            programme_id = row[1]
+            semester_number = row[2]  # Capture semester_number
+            elective_no = row[3]
+            programme_name = row[4]
+            course_name = row[5]
+            hours_per_week = row[6]
+            faculty_id = row[7]
+
+            # Initialize the outer dictionary for the programme_id if not already done
+            if programme_id not in electives_by_programme:
+                electives_by_programme[programme_id] = {}
+
+            # Initialize the inner dictionary for the semester_number if not already done
+            if semester_number not in electives_by_programme[programme_id]:
+                electives_by_programme[programme_id][semester_number] = {}
+
+            # Initialize the inner dictionary for the elective_no if not already done
+            if elective_no not in electives_by_programme[programme_id][semester_number]:
+                electives_by_programme[programme_id][semester_number][elective_no] = []
+
+            # Append the course details to the elective_no's list within the programme and semester
+            electives_by_programme[programme_id][semester_number][elective_no].append({
+                'course_id': course_id,
+                'course_name': course_name,
+                'hours_per_week': hours_per_week,
+                'faculty_id': faculty_id
+            })
+
+        return electives_by_programme
+
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        return {}
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()

@@ -101,3 +101,34 @@ INSERT INTO faculty_allocation (course_id, faculty_id) VALUES
 ('23MX15', 'CA003'), -- Kalyani A
 ('23MX19', 'CA004'); -- Ilayaraja N
 
+use timetable_db;
+
+INSERT INTO course (course_id, course_name, course_type, hours_per_week, programme_id, semester_number)
+VALUES 
+('23MX53', 'DS', 'Core', 3, 'MCA', 5),
+('23MX54', 'DBMS', 'Core', 4, 'MCA', 5),
+('23MX55', 'WT', 'Core', 3, 'MCA', 5),
+('23MX56', 'C Lab', 'Lab', 4, 'MCA', 5),
+('23MX57', 'DS Lab', 'Lab', 4, 'MCA', 5),
+('23MX58', 'WAD Lab', 'Lab', 4, 'MCA', 5),
+('23MX59', 'TWM', 'Core', 1, 'MCA', 5),
+('23MX66', 'JAVA Lab', 'Lab', 4, 'MCA', 6),
+('23MX71', 'CC', 'Core', 3, 'MCA', 7),
+('23MX76', 'CC Lab', 'Lab', 4, 'MCA', 7),
+('23MX77', 'Mini Project Lab', 'Lab', 4, 'MCA', 7),
+('23MXCA', 'Entrepreneurship', 'Elective', 3),
+('23MXCB', 'PMBS', 'Elective', 3);
+
+INSERT INTO course (course_id, course_name, course_type, hours_per_week, programme_id)
+VALUES 
+('23MXCA', 'Entrepreneurship', 'Elective', 3, 'MCA'),
+('23MXCB', 'PMBS', 'Elective', 3, 'MCA');
+
+CREATE TABLE Elective_allocation (
+    course_id VARCHAR(20), -- Assuming course_id is a VARCHAR, adjust data type as needed
+    programme_id VARCHAR(20), -- Assuming programme_id is a VARCHAR, adjust data type as needed
+    elective_no INT,
+    PRIMARY KEY (course_id, programme_id, elective_no),
+    FOREIGN KEY (course_id) REFERENCES Course(course_id), -- Adjust the referenced table and column if necessary
+    FOREIGN KEY (programme_id) REFERENCES Programme(programme_id) -- Adjust the referenced table and column if necessary
+);

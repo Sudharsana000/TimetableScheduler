@@ -1,19 +1,21 @@
 import random
 import json
-from queries import get_courses, get_department_programme_map, get_labs, get_classrooms, get_groups_by_programme, get_faculty_allocation_by_course
+from queries import get_courses, get_department_programme_map, get_labs, get_classrooms, get_groups_by_programme, get_faculty_allocation_by_course, get_elective_allocation_by_semester
 
-def structure_timetable(days, hours_per_day):
+def structure_timetable_for_groups(days, hours_per_day, num_groups):
     timetable = {}
     
-    for day in days:
-        timetable[day] = {}
-        for hour in range(1, hours_per_day + 1):
-            timetable[day][hour] = {
-                "Classroom": None,
-                "Faculty": None,
-                "Course": None
-            }
-
+    # Create a timetable for each group
+    for group in range(1, num_groups + 1):
+        timetable[f'Group_{group}'] = {}
+        for day in days:
+            timetable[f'Group_{group}'][day] = {}
+            for hour in range(1, hours_per_day + 1):
+                timetable[f'Group_{group}'][day][hour] = {
+                    "Classroom": None,
+                    "Faculty": None,
+                    "Course": None
+                }
     return timetable
 
 def add_lab_courses(programme_timelines, programme_data, faculties, labs, department_programme_map, hours_per_day):
@@ -117,9 +119,88 @@ def add_lab_courses(programme_timelines, programme_data, faculties, labs, depart
                     available_days.remove(day)
                     unallocated_classes_per_week -= 1
 
+def add_elective_courses(elective_data, programme_timelines, classrooms, hours_per_day):
+    # Track available classrooms for each day and hour
+    classroom_availability = {
+        day: {hour: list(classrooms) for hour in range(1, hours_per_day + 1)}
+        for day in list(programme_timelines.values())[0].keys()  # Use any class timetable to get day list
+    }
+    
+    # Track available faculties for each elective course
+    faculty_availability = {}
+    selected_faculties = {}  # Track selected faculties for each elective
+
+    for day in classroom_availability.keys():
+        faculty_availability[day] = {}
+        for hour in range(1, hours_per_day + 1):
+            faculty_availability[day][hour] = {}
+            for programme, sem_data in elective_data.items():
+                for sem, elective_groups in sem_data.items():
+                    for elective_num, electives in elective_groups.items():
+                        for course in electives:
+                            course_id = course['course_id']
+                            faculty_availability[day][hour][course_id] = list([course['faculty_id']])
+
+    # Generate day-hour combinations
+    day_hour_combinations = [
+        (day, int(hour))
+        for day in classroom_availability.keys()
+        for hour in classroom_availability[day].keys()
+    ]
+
+    # Loop through the electives and allocate them
+    for programme, sem_data in elective_data.items():
+        for sem, elective_groups in sem_data.items():
+            class_timetables = programme_timelines[programme][sem]
+
+            for elective_num, electives in elective_groups.items():
+                unallocated_classes_per_week = electives[0]['hours_per_week']
+                available_days = list(class_timetables.keys())
+
+                while unallocated_classes_per_week > 0:
+                    # Find available day-hour slots for all groups
+                    available_hours = [
+                        (d, hour)
+                        for d, hour in day_hour_combinations
+                        if d in available_days and classroom_availability[d][hour]
+                        and all(course['course_id'] in faculty_availability[d][hour] for course in electives)
+                    ]
+
+                    if not available_hours:
+                        print(f"No available slots for electives in semester {sem}, elective group {elective_num}.")
+                        break
+
+                    # Choose a random available time slot
+                    day, hour = random.choice(available_hours)
+
+                    # Assign electives to the same time slot for different classrooms
+                    selected_classrooms = []
+                    for course in electives:
+                        selected_classroom = classroom_availability[day][hour].pop(0)
+                        selected_classrooms.append(selected_classroom)
+                        course_id = course['course_id']
+
+                        if course_id not in selected_faculties:
+                            selected_faculty = faculty_availability[day][hour][course_id].pop(0)
+                            selected_faculties[course_id] = selected_faculty
+                        else:
+                            selected_faculty = selected_faculties[course_id]
+
+                        # Assign the course to the class timetable
+                        for group in class_timetables:
+                            class_timetables[group][day][hour] = {
+                                "Classroom": selected_classroom['hall_id'],
+                                "Faculty": selected_faculty,
+                                "Course": course_id
+                            }
+
+                    # Decrement the unallocated classes count
+                    unallocated_classes_per_week -= 1
+
+                    # Remove the selected day-hour combination to prevent further allocation
+                    day_hour_combinations.remove((day, hour))
+
 def add_regular_classes(programme_timelines, programme_data, faculties, classrooms, hours_per_day, existing_classes=None):
-    # Initialize availability trackers for classrooms and faculties per semester
-    print(programme_timelines)
     classroom_availability = {
         day: {hour: list(classrooms) for hour in range(1, hours_per_day + 1)}
         for day in list(list(programme_timelines.values())[0].values())[0].keys()  # Use any class timetable to get day list
@@ -202,7 +283,7 @@ def add_regular_classes(programme_timelines, programme_data, faculties, classroo
 
                     if not available_hours:
                         # No available slots for this course in the current semester
-                        print(f"No available slots for course '{course_id}' in semester {sem} for programme {programme}")
+                        # print(f"No available slots for course '{course_id}' in semester {sem} for programme {programme}")
                         break
 
                     # Choose a random available day-hour slot
@@ -247,49 +328,28 @@ faculties = get_faculty_allocation_by_course()
 hours_per_day = 7
 
 # Example: Get data from the database
-# courses_by_programme = get_courses(is_odd_semester)  # This now contains multiple departments
+courses_by_programme = get_courses(is_odd_semester)  # This now contains multiple departments
 
-courses_by_programme = {'MCA': {1: {'lab_courses': [{'course_id': '23MX16', 'hours_per_week': 4}, 
-                    {'course_id': '23MX17', 'hours_per_week': 4}, {'course_id': '23MX18', 'hours_per_week': 4}], 
-                    'regular_courses': [{'course_id': '23MX11', 'hours_per_week': 4}, 
-                                        {'course_id': '23MX12', 'hours_per_week': 3}, 
-                                        {'course_id': '23MX13', 'hours_per_week': 3}, 
-                                        {'course_id': '23MX14', 'hours_per_week': 4}, 
-                                        {'course_id': '23MX15', 'hours_per_week': 3}, 
-                                        {'course_id': '23MX19', 'hours_per_week': 1}]}, 
-                    2: {'lab_courses': [{'course_id': '23MX16', 'hours_per_week': 4}, 
-                    {'course_id': '23MX17', 'hours_per_week': 4}, {'course_id': '23MX18', 'hours_per_week': 4}], 
-                    'regular_courses': [{'course_id': '23MX11', 'hours_per_week': 4}, 
-                                        {'course_id': '23MX12', 'hours_per_week': 3}, 
-                                        {'course_id': '23MX13', 'hours_per_week': 3}, 
-                                        {'course_id': '23MX14', 'hours_per_week': 4}, 
-                                        {'course_id': '23MX15', 'hours_per_week': 3}, 
-                                        {'course_id': '23MX19', 'hours_per_week': 1}]},
-                                        3: {'lab_courses': [{'course_id': '23MX36', 'hours_per_week': 4},
-                                        {'course_id': '23MX37', 'hours_per_week': 4}], 
-                                        'regular_courses': [{'course_id': '23MX31', 'hours_per_week': 3}]},
-                                        4: {'lab_courses': [{'course_id': '23MX36', 'hours_per_week': 4},
-                                        {'course_id': '23MX37', 'hours_per_week': 4}], 
-                                        'regular_courses': [{'course_id': '23MX31', 'hours_per_week': 3}]}}}
+num_groups_per_sem = {1: 2, 3: 2}  # Semester 1 and 3 have 2 groups each
 
-
-# Dynamically generate timetables for all departments and their respective semesters
 programme_timelines = {
     programme: {
-        sem: structure_timetable(days, hours_per_day)
+        sem: structure_timetable_for_groups(days, hours_per_day, num_groups_per_sem.get(sem, 1))
         for sem in semesters.keys()
     }
     for programme, semesters in courses_by_programme.items()
 }
 
-# Add lab courses for all departments and their respective semesters
-add_lab_courses(programme_timelines, courses_by_programme, faculties, labs, department_programme_map, hours_per_day)
-add_regular_classes(programme_timelines, courses_by_programme, faculties, classrooms, hours_per_day)
+# Updated course allocation function to handle multiple groups
+def add_courses_for_groups(programme_timelines, programme_data, faculties, classrooms, hours_per_day):
+    for programme, sem_timelines in programme_timelines.items():
+        for sem, group_timelines in sem_timelines.items():
+            for group, class_obj in group_timelines.items():
+                add_lab_courses({programme: {sem: class_obj}}, programme_data, faculties, labs, department_programme_map, hours_per_day)
+                add_regular_classes({programme: {sem: class_obj}}, programme_data, faculties, classrooms, hours_per_day)
 
-
-# # Output the timetable for all departments and semesters as a JSON string
+# Call the updated function to allocate courses for all groups
+add_courses_for_groups(programme_timelines, courses_by_programme, faculties, classrooms, hours_per_day)
 
 json_output = json.dumps(programme_timelines)
 print(json_output)
-# groups = get_groups_by_programme(is_odd_semester)
-# print(groups)
