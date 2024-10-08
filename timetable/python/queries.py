@@ -215,7 +215,7 @@ def get_department_programme_map():
             cursor.close()
             connection.close()
 
-def get_groups_by_programme(is_odd_semester):
+def get_groups_by_programme(programme, is_odd_semester):
     connection = create_db_connection()
     if connection is None:
         print("Failed to connect to the database.")
@@ -225,9 +225,10 @@ def get_groups_by_programme(is_odd_semester):
         cursor = connection.cursor()
 
         # Query to fetch groups along with the programme information
-        group_query = """
+        group_query = f"""
             SELECT programme_id, year_group, programme_year, group_strength
             FROM groupTable
+            WHERE programme_id = '{programme}'
             ORDER BY programme_id, programme_year, year_group;
         """
 

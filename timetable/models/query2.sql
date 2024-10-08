@@ -132,3 +132,16 @@ CREATE TABLE Elective_allocation (
     FOREIGN KEY (course_id) REFERENCES Course(course_id), -- Adjust the referenced table and column if necessary
     FOREIGN KEY (programme_id) REFERENCES Programme(programme_id) -- Adjust the referenced table and column if necessary
 );
+
+ALTER TABLE Elective_allocation
+ADD COLUMN semester_number INT;
+
+INSERT INTO Elective_allocation (course_id, programme_id, elective_no, semester_number)
+VALUES 
+('23MXCA', 'MCA', 2, 3), 
+('23MXCB', 'MCA', 2, 3);
+
+ALTER TABLE Elective_allocation
+ADD COLUMN strength INT;
+
+select * from Elective_allocation;
