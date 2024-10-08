@@ -95,6 +95,18 @@ def add_lab_courses(all_timetables, programme_timelines, programme_data, faculti
                                 extracted_timetable[day][hour] = []
                             extracted_timetable[day][hour].append(faculty)
 
+    for day, hours in extracted_timetable.items():
+        for hour, faculties in hours.items():
+            if day in faculty_availability and hour in faculty_availability[day]:
+                for course, available_faculties in faculty_availability[day][hour].items():
+                    i = 0
+                    while i < len(available_faculties):
+                        faculty = available_faculties[i]
+                        if faculty in faculties:
+                            available_faculties.remove(faculty)
+                        else:
+                            i += 1
+
     # Track day-hour combinations avoiding conflicts
     day_hour_combinations = [
         (day, int(hour))
@@ -120,32 +132,45 @@ def add_lab_courses(all_timetables, programme_timelines, programme_data, faculti
                 available_days = list(class_obj.keys())
 
                 while unallocated_classes_per_week > 0:
+                    # Find available day-hour slots for this semester and course
                     available_hours = [
                         (d, hour)
                         for d, hour in day_hour_combinations
                         if d in available_days
-                        and class_obj[d][hour]["Course"] is None and class_obj[d][hour + 1]["Course"] is None
-                        and lab_availability[d][hour][department] and lab_availability[d][hour + 1][department]
-                        and course_id in faculty_availability[d][hour] and faculty_availability[d][hour][course_id]
+                        and class_obj[d][hour]["Course"] is None and class_obj[d][hour + 1]["Course"] is None  # Check both hours for lab
+                        and lab_availability[d][hour][department] and lab_availability[d][hour + 1][department]  # Labs available for both hours
+                        # Ensure selected faculty is available (if already selected)
+                        and (
+                            course_id not in selected_faculties or
+                            selected_faculties[course_id] in faculty_availability[d][hour][course_id] and 
+                            selected_faculties[course_id] in faculty_availability[d][hour + 1][course_id]
+                        )
+                        # Check if any faculty is available
+                        and course_id in faculty_availability[d][hour] and faculty_availability[d][hour][course_id]  
                         and course_id in faculty_availability[d][hour + 1] and faculty_availability[d][hour + 1][course_id]
                     ]
 
                     if not available_hours:
-                        print(f"No available slots for lab course '{course_id}' in semester {sem} for department {department}")
+                        # print(f"No available slots for lab course '{course_id}' in semester {sem} for department {department}")
                         break
 
+                    # Choose a random available day-hour slot
                     random_available_hour = random.choice(available_hours)
                     day, hour = random_available_hour
 
                     # Select lab for this department
                     selected_lab = lab_availability[day][hour][department].pop(0)
+
+                    # Select faculty for this course
                     if course_id not in selected_faculties:
+                        # If no faculty has been selected yet for this course, assign a new one
                         selected_faculty = faculty_availability[day][hour][course_id].pop(0)
                         selected_faculties[course_id] = selected_faculty
                     else:
+                        # Use the already selected faculty for this course
                         selected_faculty = selected_faculties[course_id]
 
-                    # Assign lab to the class timetable
+                    # Assign lab course to both hour slots
                     class_obj[day][hour] = {
                         "Classroom": selected_lab['lab_id'],
                         "Faculty": selected_faculty,
@@ -164,7 +189,10 @@ def add_lab_courses(all_timetables, programme_timelines, programme_data, faculti
                     if not faculty_availability[day][hour + 1][course_id]:
                         del faculty_availability[day][hour + 1][course_id]
 
+                    # Mark this day as used for lab allocation
                     available_days.remove(day)
+
+                    # Decrement the unallocated lab hours per week
                     unallocated_classes_per_week -= 1
 
 def remove_hall_if_classroom_matches(transformed_timetable, classroom_availability):
@@ -225,6 +253,7 @@ def add_regular_classes(all_timetables, programme_timelines, programme_data, fac
                     else:
                         i += 1
 
+
     extracted_timetable = {}
     for programme, semesters in all_timetables.items():
         for sem, groups in semesters.items():
@@ -239,7 +268,6 @@ def add_regular_classes(all_timetables, programme_timelines, programme_data, fac
                                 extracted_timetable[day][hour] = []
                             extracted_timetable[day][hour].append(faculty)
 
-    print(extracted_timetable)
     for day, hours in extracted_timetable.items():
         for hour, faculties in hours.items():
             if day in faculty_availability and hour in faculty_availability[day]:
@@ -252,7 +280,6 @@ def add_regular_classes(all_timetables, programme_timelines, programme_data, fac
                         else:
                             i += 1
 
-    print(faculty_availability)
     # Track day-hour combinations for regular class allocation (this is no longer removed globally)
     day_hour_combinations = [
         (day, int(hour))
@@ -276,7 +303,14 @@ def add_regular_classes(all_timetables, programme_timelines, programme_data, fac
                         for d, hour in day_hour_combinations
                         if class_obj[d][hour]["Course"] is None  # Check if slot is empty for this semester
                         and classroom_availability[d][hour]  # Classroom available
-                        and course_id in faculty_availability[d][hour]  # Faculty available
+                        # Check if the faculty has been selected already for the course-semester
+                        and (
+                            (course_id, sem) not in selected_faculties or
+                            # If selected, ensure the same faculty is available for this time slot
+                            selected_faculties[(course_id, sem)] in faculty_availability[d][hour][course_id]
+                        )
+                        # If no faculty has been selected, check any faculty is available
+                        and course_id in faculty_availability[d][hour]  
                         and faculty_availability[d][hour][course_id]  # Faculty not already allocated
                     ]
 
@@ -294,9 +328,11 @@ def add_regular_classes(all_timetables, programme_timelines, programme_data, fac
 
                     # Select faculty for this course and semester (per semester)
                     if (course_id, sem) not in selected_faculties:
+                        # If no faculty has been selected yet for this course-semester
                         selected_faculty = faculty_availability[day][hour][course_id].pop(0)
                         selected_faculties[(course_id, sem)] = selected_faculty
                     else:
+                        # If the faculty has already been selected, use the same faculty
                         selected_faculty = selected_faculties[(course_id, sem)]
 
                     # Assign regular course to the class timetable
