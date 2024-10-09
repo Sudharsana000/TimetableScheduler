@@ -204,6 +204,130 @@ def remove_hall_if_classroom_matches(transformed_timetable, classroom_availabili
 
     return classroom_availability
 
+def add_parallel_electives(all_timetables, group_timelines, programme_data, faculties, classrooms, hours_per_day, elective_data=None):
+    # Initialize classroom availability for each day and hour
+    classroom_availability = {
+        day: {hour: list(classrooms) for hour in range(1, hours_per_day + 1)}
+        for day in list(list(group_timelines.values())[0].keys())  # Get day list from any timetable
+    }
+
+    # Initialize faculty availability for elective courses
+    faculty_availability = {}
+    for day in classroom_availability.keys():
+        faculty_availability[day] = {}
+        for hour in range(1, hours_per_day + 1):
+            faculty_availability[day][hour] = {}
+            # Loop through electives to set the faculty availability
+            for programme, semesters in elective_data.items():
+                for sem, elective_groups in semesters.items():
+                    for elective_num, elective_courses in elective_groups.items():
+                        for course in elective_courses:
+                            course_id = course['course_id']
+                            if course_id in faculties:
+                                faculty_availability[day][hour][course_id] = list(faculties[course_id])
+
+    # Extract the current timetable allocations to filter out occupied classrooms and faculties
+    for programme, semesters in all_timetables.items():
+        for semester, groups in semesters.items():
+            for group, days in groups.items():
+                for day, hours in days.items():
+                    for hour, details in hours.items():
+                        # Remove classrooms that are already occupied
+                        classroom = details.get('Classroom')
+                        if classroom and day in classroom_availability and hour in classroom_availability[day]:
+                            classroom_availability[day][hour] = [hall for hall in classroom_availability[day][hour] if hall['hall_id'] != classroom]
+                        # Remove faculties that are already occupied
+                        faculty = details.get('Faculty')
+                        if faculty:
+                            for course_id, available_faculties in faculty_availability[day][hour].items():
+                                if faculty in available_faculties:
+                                    faculty_availability[day][hour][course_id].remove(faculty)
+
+    # Track day-hour combinations for elective allocation
+    day_hour_combinations = [
+        (day, int(hour))
+        for day in classroom_availability.keys()
+        for hour in range(1, hours_per_day + 1)
+    ]
+
+    # Allocate electives dynamically for each programme and semester
+    for programme, semesters in elective_data.items():
+        for sem, elective_groups in semesters.items():
+            for elective_num, elective_courses in elective_groups.items():
+                # Allocate parallel electives for all groups in the semester **at the same time slot**
+                while any(course['hours_per_week'] > 0 for course in elective_courses):
+                    # Find available time slots for all groups
+                    available_hours = [
+                        (d, hour)
+                        for d, hour in day_hour_combinations
+                        if classroom_availability[d][hour]
+                        # Ensure all electives in the group have available faculty and classrooms
+                        and all(
+                            course['course_id'] in faculty_availability[d][hour] 
+                            and faculty_availability[d][hour][course['course_id']]
+                            for course in elective_courses
+                        )
+                        # Ensure no group in the semester is already scheduled for that hour
+                        and all(
+                            group in all_timetables[programme][sem]
+                            and all_timetables[programme][sem][group][d][hour]['Course'] is None
+                            # New check: Ensure both parallel electives are not scheduled already in any hour of the day
+                            and not any(
+                                all_timetables[programme][sem][group][d][h].get('Course') in [course['course_id'] for course in elective_courses]
+                                for h in range(1, hours_per_day + 1)
+                            )  # Check for both electives to ensure neither is scheduled more than once per day
+                            for group in all_timetables[programme][sem]
+                        )
+                    ]
+
+                    if not available_hours:
+                        print(f"No available slots for electives in programme {programme}, semester {sem}, elective group {elective_num}.")
+                        break
+
+                    # Choose a random available day-hour slot
+                    day, hour = random.choice(available_hours)
+
+                    # Allocate the elective courses for **all groups** in the semester at the same day and hour
+                    assigned_classrooms = []
+                    assigned_faculties = []
+                    assigned_courses = []
+
+                    for course in elective_courses:
+                        course_id = course['course_id']
+                        if course['hours_per_week'] > 0:
+                            # Check if faculty is still available before popping
+                            if faculty_availability[day][hour][course_id]:
+                                selected_classroom = classroom_availability[day][hour].pop(0)
+                                selected_faculty = faculty_availability[day][hour][course_id].pop(0)
+
+                                assigned_classrooms.append(selected_classroom['hall_id'])
+                                assigned_faculties.append(selected_faculty)
+                                assigned_courses.append(course_id)
+
+                                # Decrement the unallocated hours for the course
+                                course['hours_per_week'] -= 1
+                            else:
+                                print(f"No available faculty for course {course_id} on {day} at hour {hour}.")
+                                continue  # Skip if no faculty is available
+
+                    # Assign the elective course to the same time slot for all groups in this semester
+                    for group in all_timetables[programme][sem]:
+                        if assigned_classrooms and assigned_faculties:
+                            all_timetables[programme][sem][group][day][hour] = {
+                                "Classroom": assigned_classrooms,
+                                "Faculty": assigned_faculties,
+                                "Course": assigned_courses
+                            }
+
+                    # Remove faculty and classroom from availability if fully booked
+                    for course in elective_courses:
+                        course_id = course['course_id']
+                        if not faculty_availability[day][hour][course_id]:
+                            del faculty_availability[day][hour][course_id]
+
+                    # Remove the selected day-hour combination from future allocation
+                    day_hour_combinations.remove((day, hour))
+
 def add_regular_classes(all_timetables, programme_timelines, programme_data, faculties, classrooms, hours_per_day, existing_classes=None):
     classroom_availability = {
         day: {hour: list(classrooms) for hour in range(1, hours_per_day + 1)}
@@ -227,20 +351,27 @@ def add_regular_classes(all_timetables, programme_timelines, programme_data, fac
                         if course_id in faculties:
                             faculty_availability[day][hour][course_id] = list(faculties[course_id])
 
-
     extracted_timetable = {}
+
     for programme, semesters in all_timetables.items():
         for semester, groups in semesters.items():
             for group, days in groups.items():
                 for day, hours in days.items():
                     for hour, details in hours.items():
                         classroom = details.get('Classroom')
+
+                        # If classroom exists
                         if classroom:
                             if day not in extracted_timetable:
                                 extracted_timetable[day] = {}
                             if hour not in extracted_timetable[day]:
                                 extracted_timetable[day][hour] = []
-                            extracted_timetable[day][hour].append(classroom)
+
+                            # Check if classroom is a list (array) and flatten it
+                            if isinstance(classroom, list):
+                                extracted_timetable[day][hour].extend(classroom)  # Flatten the list and append elements
+                            else:
+                                extracted_timetable[day][hour].append(classroom)  # Append the single classroom
 
     for day, hours in extracted_timetable.items():
         for hour, classrooms in hours.items():
@@ -252,7 +383,6 @@ def add_regular_classes(all_timetables, programme_timelines, programme_data, fac
                         classroom_availability[day][hour].remove(hall)
                     else:
                         i += 1
-
 
     extracted_timetable = {}
     for programme, semesters in all_timetables.items():
@@ -303,6 +433,8 @@ def add_regular_classes(all_timetables, programme_timelines, programme_data, fac
                         for d, hour in day_hour_combinations
                         if class_obj[d][hour]["Course"] is None  # Check if slot is empty for this semester
                         and classroom_availability[d][hour]  # Classroom available
+                        # Ensure the course hasn't been scheduled already on the current day
+                        and all(class_obj[d][h]["Course"] != course_id for h in range(1, hours_per_day + 1))
                         # Check if the faculty has been selected already for the course-semester
                         and (
                             (course_id, sem) not in selected_faculties or
@@ -316,7 +448,6 @@ def add_regular_classes(all_timetables, programme_timelines, programme_data, fac
 
                     if not available_hours:
                         # No available slots for this course in the current semester
-                        # print(f"No available slots for course '{course_id}' in semester {sem} for programme {programme}")
                         break
 
                     # Choose a random available day-hour slot
@@ -360,6 +491,8 @@ department_programme_map = get_department_programme_map()
 
 faculties = get_faculty_allocation_by_course()
 
+elective_data = get_elective_allocation_by_semester()
+
 hours_per_day = 7
 
 # Example: Get data from the database
@@ -376,63 +509,94 @@ programme_timelines = {
 }
 
 # Updated course allocation function to handle multiple groups
-def add_courses_for_groups(programme_timelines, programme_data, faculties, classrooms, hours_per_day):
+def add_courses_for_groups(programme_timelines, programme_data, faculties, classrooms, labs, hours_per_day, elective_data, department_programme_map):
     for programme, sem_timelines in programme_timelines.items():
         for sem, group_timelines in sem_timelines.items():
+            
+            # Step 1: Allocate lab courses for each group separately
             for group, class_obj in group_timelines.items():
-                add_lab_courses(programme_timelines, {programme: {sem: class_obj}}, programme_data, faculties, labs, department_programme_map, hours_per_day)
-                add_regular_classes(programme_timelines, {programme: {sem: class_obj}}, programme_data, faculties, classrooms, hours_per_day)
+                add_lab_courses(
+                    programme_timelines, 
+                    {programme: {sem: class_obj}}, 
+                    programme_data, 
+                    faculties, 
+                    labs, 
+                    department_programme_map, 
+                    hours_per_day
+                )
+                
+            # Step 2: Allocate electives for all groups in the semester together
+            add_parallel_electives(
+                programme_timelines,  # Pass all programme timelines as electives need all groups
+                group_timelines,
+                programme_data,
+                faculties,
+                classrooms,
+                hours_per_day,
+                elective_data
+            )
+
+            # Step 3: Allocate regular classes for each group separately after electives
+            for group, class_obj in group_timelines.items():
+                add_regular_classes(
+                    programme_timelines, 
+                    {programme: {sem: class_obj}}, 
+                    programme_data, 
+                    faculties, 
+                    classrooms, 
+                    hours_per_day
+                )
 
 # Call the updated function to allocate courses for all groups
-add_courses_for_groups(programme_timelines, courses_by_programme, faculties, classrooms, hours_per_day)
+add_courses_for_groups(programme_timelines, courses_by_programme, faculties, classrooms, labs, hours_per_day, elective_data, department_programme_map)
 
-# json_output = json.dumps(programme_timelines)
-# print(json_output)
+json_output = json.dumps(programme_timelines)
+print(json_output)
 
-def compare_allocations(all_timetable):
-    faculty_conflicts = {}
-    classroom_conflicts = {}
+# def compare_allocations(all_timetable):
+#     faculty_conflicts = {}
+#     classroom_conflicts = {}
 
-    # Loop through all programs, semesters, and groups to check for conflicts
-    for programme, semesters in all_timetable.items():
-        for sem, groups in semesters.items():
-            for group, timetable in groups.items():
-                for day, hours in timetable.items():
-                    for hour, session in hours.items():
-                        faculty = session.get('Faculty')
-                        classroom = session.get('Classroom')
-                        course = session.get('Course')
+#     # Loop through all programs, semesters, and groups to check for conflicts
+#     for programme, semesters in all_timetable.items():
+#         for sem, groups in semesters.items():
+#             for group, timetable in groups.items():
+#                 for day, hours in timetable.items():
+#                     for hour, session in hours.items():
+#                         faculty = session.get('Faculty')
+#                         classroom = session.get('Classroom')
+#                         course = session.get('Course')
 
-                        # Check for faculty conflicts
-                        if faculty:
-                            key = (day, hour, faculty)
-                            if key not in faculty_conflicts:
-                                faculty_conflicts[key] = []
-                            faculty_conflicts[key].append((programme, sem, group, course))
+#                         # Check for faculty conflicts
+#                         if faculty:
+#                             key = (day, hour, faculty)
+#                             if key not in faculty_conflicts:
+#                                 faculty_conflicts[key] = []
+#                             faculty_conflicts[key].append((programme, sem, group, course))
 
-                        # Check for classroom conflicts
-                        if classroom:
-                            key = (day, hour, classroom)
-                            if key not in classroom_conflicts:
-                                classroom_conflicts[key] = []
-                            classroom_conflicts[key].append((programme, sem, group, course))
+#                         # Check for classroom conflicts
+#                         if classroom:
+#                             key = (day, hour, classroom)
+#                             if key not in classroom_conflicts:
+#                                 classroom_conflicts[key] = []
+#                             classroom_conflicts[key].append((programme, sem, group, course))
 
-    # Report conflicts
-    print("Faculty Allocation Conflicts:")
-    for key, allocations in faculty_conflicts.items():
-        if len(allocations) > 1:
-            day, hour, faculty = key
-            print(f"Faculty {faculty} is allocated multiple times on {day}, Hour {hour}:")
-            for allocation in allocations:
-                print(f"  -> Programme: {allocation[0]}, Semester: {allocation[1]}, Group: {allocation[2]}, Course: {allocation[3]}")
+#     # Report conflicts
+#     print("Faculty Allocation Conflicts:")
+#     for key, allocations in faculty_conflicts.items():
+#         if len(allocations) > 1:
+#             day, hour, faculty = key
+#             print(f"Faculty {faculty} is allocated multiple times on {day}, Hour {hour}:")
+#             for allocation in allocations:
+#                 print(f"  -> Programme: {allocation[0]}, Semester: {allocation[1]}, Group: {allocation[2]}, Course: {allocation[3]}")
     
-    print("\nClassroom Allocation Conflicts:")
-    for key, allocations in classroom_conflicts.items():
-        if len(allocations) > 1:
-            day, hour, classroom = key
-            print(f"Classroom {classroom} is allocated multiple times on {day}, Hour {hour}:")
-            for allocation in allocations:
-                print(f"  -> Programme: {allocation[0]}, Semester: {allocation[1]}, Group: {allocation[2]}, Course: {allocation[3]}")
+#     print("\nClassroom Allocation Conflicts:")
+#     for key, allocations in classroom_conflicts.items():
+#         if len(allocations) > 1:
+#             day, hour, classroom = key
+#             print(f"Classroom {classroom} is allocated multiple times on {day}, Hour {hour}:")
+#             for allocation in allocations:
+#                 print(f"  -> Programme: {allocation[0]}, Semester: {allocation[1]}, Group: {allocation[2]}, Course: {allocation[3]}")
 
-# Run the comparison
-compare_allocations(programme_timelines)
+# # Run the comparison
+# compare_allocations(programme_timelines)
