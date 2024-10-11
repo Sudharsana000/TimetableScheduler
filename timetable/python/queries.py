@@ -215,7 +215,7 @@ def get_department_programme_map():
             cursor.close()
             connection.close()
 
-def get_groups_by_programme(programme, is_odd_semester):
+def get_groups_by_programme(is_odd_semester):
     connection = create_db_connection()
     if connection is None:
         print("Failed to connect to the database.")
@@ -225,18 +225,17 @@ def get_groups_by_programme(programme, is_odd_semester):
         cursor = connection.cursor()
 
         # Query to fetch groups along with the programme information
-        group_query = f"""
+        group_query = """
             SELECT programme_id, year_group, programme_year, group_strength
             FROM groupTable
-            WHERE programme_id = '{programme}'
             ORDER BY programme_id, programme_year, year_group;
         """
 
         cursor.execute(group_query)
         group_data = cursor.fetchall()
 
-        # Dictionary to store groups by programme and semester
-        groups_by_programme = {}
+        # Dictionary to store groups by programme and semester in the desired format
+        strength_data = {}
 
         for row in group_data:
             programme_id = row[0]
@@ -251,20 +250,17 @@ def get_groups_by_programme(programme, is_odd_semester):
                 semester_number = 2 * programme_year  # Even semester
 
             # Initialize the dictionary for the programme if not already done
-            if programme_id not in groups_by_programme:
-                groups_by_programme[programme_id] = {}
+            if programme_id not in strength_data:
+                strength_data[programme_id] = {}
 
-            # Initialize the list for the semester if not already done
-            if semester_number not in groups_by_programme[programme_id]:
-                groups_by_programme[programme_id][semester_number] = []
+            # Initialize the dictionary for the semester if not already done
+            if semester_number not in strength_data[programme_id]:
+                strength_data[programme_id][semester_number] = {}
 
-            # Append group data for each semester under the programme
-            groups_by_programme[programme_id][semester_number].append({
-                "year_group": year_group,
-                "group_strength": group_strength
-            })
+            # Add group and strength to the corresponding semester and programme
+            strength_data[programme_id][semester_number][year_group] = group_strength
 
-        return groups_by_programme
+        return strength_data
 
     except mysql.connector.Error as err:
         print(f"Error: {err}")

@@ -4,7 +4,7 @@ const router = express.Router();
 const db = require('../db');
 
 router.get('/generate', (req, res) => {
-    const python = spawn('python', ['../timetable/python/trail.py']);
+    const python = spawn('python', ['../timetable/python/mca2.py']);
     let dataBuffer = '';
 
     // Listen for data from the Python script

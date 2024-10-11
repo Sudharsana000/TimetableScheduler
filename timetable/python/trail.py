@@ -30,6 +30,7 @@ def remove_lab_if_classroom_matches(transformed_timetable, lab_availability):
     return lab_availability
 
 def add_lab_courses(all_timetables, programme_timelines, programme_data, faculties, labs, department_programme_map, hours_per_day):
+    print(labs)
     # Initialize availability trackers for labs and faculties for each department 
     lab_availability = {
         day: {hour: {} for hour in range(1, hours_per_day + 1)}
@@ -119,7 +120,7 @@ def add_lab_courses(all_timetables, programme_timelines, programme_data, faculti
         # Find the department for the current programme
         department = next((dept for dept, programmes in department_programme_map.items() if programme in programmes), None)
         if department is None:
-            print(f"No department found for programme: {programme}")
+            # print(f"No department found for programme: {programme}")
             continue
 
         for sem, class_obj in sem_timelines.items():
@@ -204,7 +205,7 @@ def remove_hall_if_classroom_matches(transformed_timetable, classroom_availabili
 
     return classroom_availability
 
-def add_parallel_electives(all_timetables, group_timelines, programme_data, faculties, classrooms, hours_per_day, elective_data=None):
+def add_parallel_electives(all_timetables, group_timelines, faculties, classrooms, hours_per_day, elective_data=None):
     # Initialize classroom availability for each day and hour
     classroom_availability = {
         day: {hour: list(classrooms) for hour in range(1, hours_per_day + 1)}
@@ -253,6 +254,12 @@ def add_parallel_electives(all_timetables, group_timelines, programme_data, facu
     # Allocate electives dynamically for each programme and semester
     for programme, semesters in elective_data.items():
         for sem, elective_groups in semesters.items():
+            # Maintain a set of courses allocated per day for each group
+            courses_allocated_per_day = {
+                group: {day: set() for day in classroom_availability.keys()}
+                for group in all_timetables[programme][sem]
+            }
+
             for elective_num, elective_courses in elective_groups.items():
                 # Allocate parallel electives for all groups in the semester **at the same time slot**
                 while any(course['hours_per_week'] > 0 for course in elective_courses):
@@ -271,17 +278,17 @@ def add_parallel_electives(all_timetables, group_timelines, programme_data, facu
                         and all(
                             group in all_timetables[programme][sem]
                             and all_timetables[programme][sem][group][d][hour]['Course'] is None
-                            # New check: Ensure both parallel electives are not scheduled already in any hour of the day
+                            # Ensure neither elective course is scheduled more than once per day
                             and not any(
-                                all_timetables[programme][sem][group][d][h].get('Course') in [course['course_id'] for course in elective_courses]
-                                for h in range(1, hours_per_day + 1)
-                            )  # Check for both electives to ensure neither is scheduled more than once per day
+                                course['course_id'] in courses_allocated_per_day[group][d]
+                                for course in elective_courses
+                            )
                             for group in all_timetables[programme][sem]
                         )
                     ]
 
                     if not available_hours:
-                        print(f"No available slots for electives in programme {programme}, semester {sem}, elective group {elective_num}.")
+                        # No available slots for electives
                         break
 
                     # Choose a random available day-hour slot
@@ -307,8 +314,8 @@ def add_parallel_electives(all_timetables, group_timelines, programme_data, facu
                                 # Decrement the unallocated hours for the course
                                 course['hours_per_week'] -= 1
                             else:
-                                print(f"No available faculty for course {course_id} on {day} at hour {hour}.")
-                                continue  # Skip if no faculty is available
+                                # Skip if no faculty is available
+                                continue
 
                     # Assign the elective course to the same time slot for all groups in this semester
                     for group in all_timetables[programme][sem]:
@@ -319,11 +326,9 @@ def add_parallel_electives(all_timetables, group_timelines, programme_data, facu
                                 "Course": assigned_courses
                             }
 
-                    # Remove faculty and classroom from availability if fully booked
-                    for course in elective_courses:
-                        course_id = course['course_id']
-                        if not faculty_availability[day][hour][course_id]:
-                            del faculty_availability[day][hour][course_id]
+                            # Mark the course as allocated for that group on that day
+                            for course_id in assigned_courses:
+                                courses_allocated_per_day[group][day].add(course_id)
 
                     # Remove the selected day-hour combination from future allocation
                     day_hour_combinations.remove((day, hour))
@@ -448,6 +453,7 @@ def add_regular_classes(all_timetables, programme_timelines, programme_data, fac
 
                     if not available_hours:
                         # No available slots for this course in the current semester
+                        # print("Unable to allocate class for ",course_id)
                         break
 
                     # Choose a random available day-hour slot
@@ -529,7 +535,6 @@ def add_courses_for_groups(programme_timelines, programme_data, faculties, class
             add_parallel_electives(
                 programme_timelines,  # Pass all programme timelines as electives need all groups
                 group_timelines,
-                programme_data,
                 faculties,
                 classrooms,
                 hours_per_day,
@@ -550,8 +555,8 @@ def add_courses_for_groups(programme_timelines, programme_data, faculties, class
 # Call the updated function to allocate courses for all groups
 add_courses_for_groups(programme_timelines, courses_by_programme, faculties, classrooms, labs, hours_per_day, elective_data, department_programme_map)
 
-json_output = json.dumps(programme_timelines)
-print(json_output)
+# json_output = json.dumps(programme_timelines)
+# print(json_output)
 
 # def compare_allocations(all_timetable):
 #     faculty_conflicts = {}
