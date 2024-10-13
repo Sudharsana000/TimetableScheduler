@@ -282,7 +282,6 @@ def add_parallel_electives(all_timetables, group_timelines, faculties, classroom
 
                     if not available_hours:
                         # No available slots for electives
-                        # print("Unable to allocate class for ",course_id)
                         break
 
                     # Choose a random available day-hour slot
@@ -298,15 +297,23 @@ def add_parallel_electives(all_timetables, group_timelines, faculties, classroom
                         if course['hours_per_week'] > 0:
                             # Check if faculty is still available before popping
                             if faculty_availability[day][hour][course_id]:
-                                selected_classroom = classroom_availability[day][hour].pop(0)
-                                selected_faculty = faculty_availability[day][hour][course_id].pop(0)
+                                # Filter classrooms based on capacity closest to course strength
+                                suitable_classrooms = sorted(
+                                    [classroom for classroom in classroom_availability[day][hour] if classroom['capacity'] >= course['strength']],
+                                    key=lambda c: c['capacity']
+                                )
+                                if suitable_classrooms:
+                                    selected_classroom = suitable_classrooms[0]
+                                    classroom_availability[day][hour].remove(selected_classroom)
 
-                                assigned_classrooms.append(selected_classroom['hall_id'])
-                                assigned_faculties.append(selected_faculty)
-                                assigned_courses.append(course_id)
+                                    selected_faculty = faculty_availability[day][hour][course_id].pop(0)
 
-                                # Decrement the unallocated hours for the course
-                                course['hours_per_week'] -= 1
+                                    assigned_classrooms.append(selected_classroom['hall_id'])
+                                    assigned_faculties.append(selected_faculty)
+                                    assigned_courses.append(course_id)
+
+                                    # Decrement the unallocated hours for the course
+                                    course['hours_per_week'] -= 1
                             else:
                                 # Skip if no faculty is available
                                 continue
@@ -327,8 +334,7 @@ def add_parallel_electives(all_timetables, group_timelines, faculties, classroom
                     # Remove the selected day-hour combination from future allocation
                     day_hour_combinations.remove((day, hour))
 
-def add_regular_classes(all_timetables, programme_timelines, programme_data, faculties, classrooms, hours_per_day, existing_classes=None):
-    print(classrooms)
+def add_regular_classes(all_timetables, programme_timelines, programme_data, faculties, classrooms, strength_data, hours_per_day, existing_classes=None):
     classroom_availability = {
         day: {hour: list(classrooms) for hour in range(1, hours_per_day + 1)}
         for day in list(list(programme_timelines.values())[0].values())[0].keys()  # Use any class timetable to get day list
@@ -422,6 +428,8 @@ def add_regular_classes(all_timetables, programme_timelines, programme_data, fac
         for sem, class_obj in sem_timelines.items():
             regular_courses = programme_data[programme][sem]['regular_courses']
 
+            # group_strength = strength_data.get(programme, {}).get(sem, {})
+
             for course in regular_courses:
                 course_id = course['course_id']
                 unallocated_classes_per_week = course['hours_per_week']
@@ -454,8 +462,13 @@ def add_regular_classes(all_timetables, programme_timelines, programme_data, fac
                     # Choose a random available day-hour slot
                     day, hour = random.choice(available_hours)
 
-                    # Select a classroom for this course (per semester)
-                    selected_classroom = classroom_availability[day][hour].pop(0)
+                    # Select a suitable classroom based on the group's strength, sorted by smallest suitable capacity
+                    suitable_classrooms = sorted(
+                        [room for room in classroom_availability[day][hour] if room['capacity'] >= strength_data],
+                        key=lambda room: abs(room['capacity'] - strength_data)  # Closest capacity match
+                    )
+                    
+                    selected_classroom = suitable_classrooms[0]  # Choose the best-fit classroom
                     classroom_info = f"{selected_classroom['hall_id']}"
 
                     # Select faculty for this course and semester (per semester)
@@ -474,13 +487,16 @@ def add_regular_classes(all_timetables, programme_timelines, programme_data, fac
                         "Course": course_id
                     }
 
+                    # Remove the selected classroom and faculty from availability
+                    classroom_availability[day][hour].remove(selected_classroom)
+
                     # Remove faculty from availability once allocated
-                    if not faculty_availability[day][hour][course_id]:
-                        del faculty_availability[day][hour][course_id]
+                    faculty_availability[day][hour][course_id] = [
+                        f for f in faculty_availability[day][hour][course_id] if f != selected_faculty
+                    ]
 
                     # Decrement the unallocated count
                     unallocated_classes_per_week -= 1
-
 
 # Main code to generate timetables for all departments and their respective semesters
 days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
@@ -547,11 +563,12 @@ def add_courses_for_groups(programme_timelines, programme_data, faculties, class
                     programme_data, 
                     faculties, 
                     classrooms, 
+                    strength_data[programme][sem][group],
                     hours_per_day
                 )
 
 # Call the updated function to allocate courses for all groups
 add_courses_for_groups(programme_timelines, courses_by_programme, faculties, classrooms, labs, hours_per_day, elective_data, department_programme_map, strength_data)
 
-# json_output = json.dumps(programme_timelines)
-# print(json_output)
+json_output = json.dumps(programme_timelines)
+print(json_output)

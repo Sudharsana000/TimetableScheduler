@@ -329,6 +329,7 @@ def get_elective_allocation_by_semester(is_odd_semester=True):
                 ea.programme_id, 
                 ea.semester_number,  -- Include semester_number
                 ea.elective_no,
+                ea.strength,
                 p.programme_name,
                 c.course_name,
                 c.hours_per_week,
@@ -363,10 +364,11 @@ def get_elective_allocation_by_semester(is_odd_semester=True):
             programme_id = row[1]
             semester_number = row[2]  # Capture semester_number
             elective_no = row[3]
-            programme_name = row[4]
-            course_name = row[5]
-            hours_per_week = row[6]
-            faculty_id = row[7]
+            strength = row[4]
+            programme_name = row[5]
+            course_name = row[6]
+            hours_per_week = row[7]
+            faculty_id = row[8]
 
             # Initialize the outer dictionary for the programme_id if not already done
             if programme_id not in electives_by_programme:
@@ -385,7 +387,8 @@ def get_elective_allocation_by_semester(is_odd_semester=True):
                 'course_id': course_id,
                 'course_name': course_name,
                 'hours_per_week': hours_per_week,
-                'faculty_id': faculty_id
+                'faculty_id': faculty_id,
+                'strength': strength,
             })
 
         return electives_by_programme

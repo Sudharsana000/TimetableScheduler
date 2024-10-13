@@ -32,43 +32,100 @@ router.get('/generate', (req, res) => {
     });
 });
   
-// Route to add timetable data
-router.post('/store', async (req, res) => {
-  const timetablesData = req.body; // This will contain the 'timetable' key
-  
-    // Check if timetablesData['timetable'] exists and is an object
-    if (!timetablesData || !timetablesData['timetable'] || typeof timetablesData['timetable'] !== 'object') {
-      return res.status(400).send('Invalid data format, please ensure the JSON object contains a valid timetable structure');
-    }
-  
-    // Query for inserting or updating a timetable
-    const query = 'INSERT INTO timetable (year_group, timetable_data) VALUES (?, ?) ON DUPLICATE KEY UPDATE timetable_data = ?';
-  
-    // Process each year_group entry in the timetablesData['timetable']
-    const promises = Object.keys(timetablesData['timetable']).map((year_group) => {
-    const timetable = timetablesData['timetable'][year_group]; // The timetable for the current year_group
+// POST route to insert timetable data
+router.post('/store', (req, res) => {
+  const timetableData = req.body.timetable;
 
-    return new Promise((resolve, reject) => {
-      // Store the timetable data as a JSON string in the database
-      db.query(query, [year_group, JSON.stringify(timetable), JSON.stringify(timetable)], (err, result) => {
-        if (err) {
-          return reject(err);
-        }
-        resolve(result);
+  // Query the labs database to retrieve the list of lab names
+  db.query('SELECT lab_id FROM labs', (err, labResults) => {
+    if (err) {
+      console.error('Error querying labs database:', err);
+      return res.status(500).send('Error querying labs database');
+    }
+
+    const labs = labResults.map(row => row.lab_id); // Extract lab names from results
+
+    // Query the halls database to retrieve the list of hall names
+    db.query('SELECT hall_id FROM classrooms', (err, hallResults) => {
+      if (err) {
+        console.error('Error querying halls database:', err);
+        return res.status(500).send('Error querying halls database');
+      }
+
+      const halls = hallResults.map(row => row.hall_id); // Extract hall names from results
+
+      // Loop through each programme (e.g., MCA)
+      Object.keys(timetableData).forEach(programme => {
+        // Loop through each semester (e.g., 1, 3)
+        Object.keys(timetableData[programme]).forEach(semester => {
+          // Determine programme_year based on semester
+          const programme_year = (semester === '1' || semester === '2') ? 1 : 2;
+
+          // Loop through each group (e.g., G1, G2)
+          Object.keys(timetableData[programme][semester]).forEach(group => {
+            // Loop through each day of the week
+            Object.keys(timetableData[programme][semester][group]).forEach(day => {
+              // Loop through each hour of the day
+              Object.keys(timetableData[programme][semester][group][day]).forEach(hour => {
+                const entry = timetableData[programme][semester][group][day][hour];
+
+                // Ensure Course, Faculty, and Classroom are arrays
+                let course_ids = Array.isArray(entry.Course) ? entry.Course : [entry.Course];
+                let faculty_ids = Array.isArray(entry.Faculty) ? entry.Faculty : [entry.Faculty];
+                let classrooms = Array.isArray(entry.Classroom) ? entry.Classroom : [entry.Classroom];
+
+                // Prepare for lab/hall identification
+                let hall_ids = [];
+                let lab_ids = [];
+
+                // Loop through each classroom to identify labs and halls
+                classrooms.forEach(classroom => {
+                  if (labs.includes(classroom)) {
+                    lab_ids.push(classroom); // Add to lab_ids if it's a lab
+                  } else if (halls.includes(classroom)) {
+                    hall_ids.push(classroom); // Add to hall_ids if it's a hall
+                  } else {
+                    console.error(`Unknown classroom type: ${classroom}`);
+                  }
+                });
+
+                // Determine programme_year dynamically based on the semester
+                const programme_year = Math.ceil(semester / 2);
+
+                // Construct the SQL insert query for each timetable entry
+                const query = `
+                  INSERT INTO timetable 
+                  (semester, programme_year, programme_id, year_group, day, hour, course_ids, faculty_ids, hall_ids, lab_ids)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `;
+
+                // Execute the query with data from the entry
+                db.query(query, 
+                  [
+                    semester,              // Semester from the loop
+                    programme_year,        // Programme year determined above
+                    programme,             // Programme (e.g., MCA) from the loop
+                    group,                 // Group (e.g., G1, G2) from the loop
+                    day,                   // Day from the loop
+                    hour,                  // Hour from the loop
+                    JSON.stringify(course_ids),   // Array of course IDs
+                    JSON.stringify(faculty_ids),  // Array of faculty IDs
+                    JSON.stringify(hall_ids),     // Array of hall IDs
+                    JSON.stringify(lab_ids)       // Array of lab IDs
+                  ], 
+                  (err, result) => {
+                    if (err) {
+                      console.error('Error inserting data:', err);
+                    }
+                  });
+              });
+            });
+          });
+        });
       });
+      res.status(200).send('Timetable entries added successfully');
     });
   });
-  
-  // Execute all database operations in parallel
-  Promise.all(promises)
-    .then(() => {
-      res.send('Timetables added/updated successfully');
-    })
-    .catch((err) => {
-      console.error('Error inserting/updating timetables:', err.message);
-      res.status(500).send('Error inserting/updating timetables');
-    });
 });
-  
 
 module.exports = router;

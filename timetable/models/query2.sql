@@ -144,4 +144,33 @@ VALUES
 ALTER TABLE Elective_allocation
 ADD COLUMN strength INT;
 
-select * from Elective_allocation;
+drop table timetable;
+CREATE TABLE timetable (
+    semester INT, 
+    programme_year INT,-- Reference to the programme year from GroupTable
+    programme_id VARCHAR(10),           -- Reference to programme_id from GroupTable
+    year_group VARCHAR(2),              -- Reference to the group from GroupTable
+    day VARCHAR(10),                    -- Day of the week (e.g., Monday, Tuesday)
+    hour INT,                           -- Hour of the day (e.g., 1 for 9:00-10:00, 2 for 10:00-11:00, etc.)
+    course_id VARCHAR(10),
+    faculty_id VARCHAR(8),
+    hall_id VARCHAR(4),                 -- Reference to classrooms (if applicable)
+    lab_id VARCHAR(10),                 -- Reference to labs (if applicable)
+    
+    -- Composite Primary Key (ensures uniqueness of each timetable entry)
+    PRIMARY KEY (semester, programme_id, year_group, day, hour),
+
+    -- Foreign key to GroupTable (Include programme_year in reference)
+    FOREIGN KEY (programme_year, programme_id, year_group) 
+        REFERENCES GroupTable(programme_year, programme_id, year_group),
+
+    -- Foreign key constraints
+    FOREIGN KEY (course_id) REFERENCES course(course_id),
+    FOREIGN KEY (faculty_id) REFERENCES faculty(faculty_id),
+    FOREIGN KEY (hall_id) REFERENCES classrooms(hall_id),
+    FOREIGN KEY (lab_id) REFERENCES labs(lab_id)
+);
+
+
+
+

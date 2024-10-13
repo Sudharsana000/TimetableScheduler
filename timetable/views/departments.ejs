@@ -65,75 +65,98 @@
 
         /* Modal Styles */
         .modal {
-            display: none; /* Hidden by default */
+            display: none;
             position: fixed;
             z-index: 1;
             left: 0;
             top: 0;
-            width: 100%;
+            width: 50%;
             height: 100%;
-            overflow: auto;
-            background-color: rgba(0, 0, 0, 0.4); /* Black w/ opacity */
+            background-color: rgba(0, 0, 0, 0.8); /* Darker overlay */
             display: flex;
             justify-content: center;
-            align-items: flex-start;
+            align-items: center;
         }
 
         .modal-content {
-            background-color: #fefefe;
-            margin: 25% auto; /* 25% margin from top */
-            padding: 20px;
-            border: 1px solid #888;
-            width: 40%;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            background-color: #ffffff;
+            padding: 30px 40px; /* More padding */
+            border-radius: 15px; /* Rounded corners */
+            width: 50%; /* Fixed width */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); /* Stronger shadow */
             position: relative;
+            text-align: center;
         }
 
         .close {
             position: absolute;
-            top: 10px;
-            right: 15px;
-            color: #aaa;
-            font-size: 24px;
-            font-weight: bold;
+            top: 15px;
+            right: 20px;
+            color: #666;
+            font-size: 20px;
             cursor: pointer;
         }
 
-        .close:hover,
-        .close:focus {
-            color: #000;
-            text-decoration: none;
-            cursor: pointer;
+        .close:hover {
+            color: #333;
         }
 
         .modal-header {
-            font-size: 1.5em;
+            font-size: 1.75em;
+            font-weight: bold;
             margin-bottom: 20px;
+            color: #333;
         }
 
         .modal-form input,
         .modal-form select {
             width: 100%;
-            padding: 10px;
+            padding: 15px;
             margin: 10px 0;
-            border: 1px solid #ccc;
-            border-radius: 5px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            font-size: 1em;
+            background-color: #f9f9f9;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        .modal-form input:focus {
+            border-color: #007bff; /* Blue border on focus */
         }
 
         .modal-form button {
-            padding: 10px 15px;
-            background-color: #28a745;
-            color: #fff;
+            padding: 12px 0;
+            width: 100%;
+            background-color: #007bff;
+            color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 10px;
+            font-size: 1em;
             cursor: pointer;
-            margin-top: 15px;
+            margin-top: 20px;
         }
 
         .modal-form button:hover {
-            background-color: #218838;
+            background-color: #0056b3;
         }
+
+        /* Add animations for opening */
+        @keyframes modalFadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .modal-content {
+            animation: modalFadeIn 0.3s ease-out;
+        }
+
 
     </style>
 </head>
@@ -144,7 +167,7 @@
 
         <div class="department-grid">
             <% departments.forEach(department => { %>  
-                <div class="department-card" onclick="location.href='/departments/<%= department.dept_id %>/timetable'">
+                <div class="department-card" onclick="location.href='/departments/<%= department.dept_id %>'">
                     <div class="department-name"><%= department.dept_name %></div>
                 </div>               
             <% }) %>
