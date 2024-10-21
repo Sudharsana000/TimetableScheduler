@@ -1,0 +1,190 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f6f8;
+    padding: 20px;
+}
+
+h2 {
+    color: #333;
+    border-bottom: 2px solid #007BFF;
+    padding-bottom: 5px;
+    margin-bottom: 15px;
+}
+
+label {
+    font-weight: bold;
+    margin-bottom: 5px;
+    display: inline-block;
+}
+
+select, button {
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+    width: 100%;
+    max-width: 300px;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #fff;
+    min-width: 200px;
+    max-height: 200px;
+    overflow-y: auto;
+    box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+    border-radius: 5px;
+    z-index: 10;
+    padding: 10px;
+    border: 1px solid #ddd;
+    top: 100%; /* Positions it right below the button */
+    left: 0;   /* Aligns it with the left side of the button */
+}
+
+.dropdown {
+    position: relative;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+    box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 5px;
+    overflow: visible; /* Allow content like dropdowns to overflow */
+}
+
+td {
+    position: relative;
+}
+
+.dropdown-content label {
+    display: block;
+    padding: 5px;
+    cursor: pointer;
+}
+
+.dropdown-content label:hover {
+    background-color: #f1f1f1;
+}
+
+.dropdown:hover .dropdown-content {
+    display: block;
+}
+
+.dropdown button {
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    width: auto;
+    display: block;
+    margin: 0 auto;
+}
+
+.dropdown button:hover {
+    background-color: #0056b3;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 12px;
+    text-align: left;
+}
+
+th {
+    background-color: #007BFF;
+    color: white;
+}
+
+td {
+    vertical-align: top;
+}
+
+.elective-group {
+    background-color: #e9f0ff;
+    padding: 15px;
+    margin-top: 20px;
+    border-radius: 5px;
+    box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.elective-group h3 {
+    margin: 0 0 10px;
+    color: #0056b3;
+}
+
+/* Styling for each elective course container */
+.elective-course {
+    background-color: #f9fafc;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 5px;
+    box-shadow: 0px 1px 6px rgba(0, 0, 0, 0.1);
+}
+
+.elective-course label {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #333;
+}
+
+.elective-course select {
+    width: 100%;
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    margin-top: 5px;
+    font-size: 14px;
+    background-color: #fff;
+}
+
+/* Add styling for the remove course button */
+.remove-course-btn {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    margin-top: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.remove-course-btn:hover {
+    background-color: #c82333;
+}
+
+/* Add another course button */
+.add-course-btn {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    margin-top: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.add-course-btn:hover {
+    background-color: #218838;
+}
+
+/* Selected faculty display */
+#selected-faculty {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #555;
+}
+
+/* Ensure dropdown button is aligned to the left */
+.elective-course .dropdown {
+    text-align: left; /* Align the button to the left */
+    margin-top: 10px; /* Add some space from the top */
+}
+
+/* Ensure dropdown button width is auto to fit the content */
+.elective-course .dropdown button {
+    width: auto;
+    display: inline-block; /* Align with content */
+    padding: 5px 10px; /* Optional: Adjust padding */
+}

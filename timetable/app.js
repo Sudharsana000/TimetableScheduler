@@ -8,6 +8,7 @@ const departmentRoutes = require('./routes/departmentRoutes');
 const userRoutes = require('./routes/userRoutes');
 const timetableRoutes = require('./routes/timetableRoutes');
 const labRoutes = require('./routes/labRoutes');
+const allotmentRoutes = require('./routes/allotmentRoutes');
 
 const app = express();
 
@@ -26,6 +27,7 @@ app.use('/labs', labRoutes);
 app.use('/faculties', facultyRoutes);
 app.use('/departments', departmentRoutes);
 app.use('/timetable', timetableRoutes);
+// app.use('/allotment', allotmentRoutes);
 
 // Start the server
 const port = 3000;

@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Faculty Selection</title>
+    <link rel="stylesheet" href="/styles/allotment.css">
+</head>
+
+<body>
+    <form id="faculty-allocation-form">
+        <!-- Program Dropdown -->
+        <label for="program">Select Program:</label>
+        <select id="program" name="program">
+            <% if (departmentData && departmentData.programs) { %>
+                <% departmentData.programs.forEach(function(program) { %>
+                    <option value="<%= program.programme_id %>"><%= program.programme_name %></option>
+                <% }) %>
+            <% } else { %>
+                <option value="">No Programs Available</option>
+            <% } %>
+        </select>
+
+        <!-- Core Courses Table Grouped by Semester (Excluding Electives) -->
+        <% if (departmentData && departmentData.courses) { %>
+            <% 
+                const groupedCoreCourses = {};
+                departmentData.courses.forEach(function(course) {
+                    if (course.course_type !== 'Elective') {
+                        if (!groupedCoreCourses[course.semester_number]) {
+                            groupedCoreCourses[course.semester_number] = [];
+                        }
+                        groupedCoreCourses[course.semester_number].push(course);
+                    }
+                });
+            %>
+
+            <% Object.keys(groupedCoreCourses).forEach(function(semester) { %>
+                <h2>Semester: <%= semester %></h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Course Name</th>
+                            <th>Faculty</th>
+                            <th>Hours Per Week</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% groupedCoreCourses[semester].forEach(function(course) { %>
+                            <tr>
+                                <td><%= course.course_id %> - <%= course.course_name %></td>
+                                <td>
+                                    <div class="dropdown">
+                                        <button type="button">Select Faculties</button>
+                                        <div class="dropdown-content">
+                                            <% if (departmentData.faculties) { %>
+                                                <% departmentData.faculties.forEach(function(faculty) { %>
+                                                    <label>
+                                                        <input type="checkbox" 
+                                                               class="faculty-checkbox" 
+                                                               data-course-id="<%= course.course_id %>" 
+                                                               value="<%= faculty.faculty_id %>" 
+                                                               data-name="<%= faculty.name %>"> 
+                                                        <%= faculty.name %>
+                                                    </label>
+                                                <% }) %>
+                                            <% } else { %>
+                                                <p>No Faculties Available</p>
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                    <div id="selected-faculty-<%= course.course_id %>" class="selected-faculty"></div>
+                                </td>
+                                <td><%= course.hours_per_week %></td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            <% }) %>
+        <% } else { %>
+            <p>No Courses Available</p>
+        <% } %>
+
+        <!-- Elective Courses Section -->
+        <% if (departmentData && departmentData.electives) { %>
+            <h2>Electives</h2>
+            <% departmentData.electives.forEach(function(elective) { %>
+                <div class="elective-group">
+                    <h3>Program: <%= elective.programme_id %> - Semester: <%= elective.semester_number %></h3>
+                    <% for (let i = 1; i <= elective.number_of_electives; i++) { %>
+                        <div class="elective-course" id="elective-course-group-<%= elective.semester_number %>-<%= i %>">
+                            <label>Elective <%= i %>:</label>
+                            <div class="elective-courses">
+                                <div class="elective-course-entry">
+                                    <select name="electives[<%= elective.semester_number %>][<%= i %>][]">
+                                        <option value="">Select a course</option>
+                                        <% departmentData.courses
+                                            .filter(course => course.course_type === 'Elective' && course.programme_id === elective.programme_id)
+                                            .forEach(function(course) { %>
+                                            <option value="<%= course.course_id %>"><%= course.course_id %> <%= course.course_name %></option>
+                                        <% }) %>
+                                    </select>
+                                    <br/>
+                                    <label>Assign Faculty:</label>
+                                    <div class="dropdown">
+                                        <button type="button">Select Faculties</button>
+                                        <div class="dropdown-content">
+                                            <% allFaculties.forEach(function(faculty) { %>
+                                                <label>
+                                                    <input type="checkbox" 
+                                                        class="faculty-checkbox-elective" 
+                                                        data-course-id="<%= elective.semester_number %>-<%= i %>" 
+                                                        value="<%= faculty.faculty_id %>" 
+                                                        data-name="<%= faculty.name %>"> 
+                                                    <%= faculty.name %>
+                                                </label>
+                                            <% }) %>
+                                        </div>
+                                    </div>
+                                    <div id="selected-faculty-<%= elective.semester_number %>-<%= i %>" class="selected-faculty"></div>
+                                    <button type="button" class="remove-course-btn">Remove Course</button>
+                                </div>
+                            </div>
+                            <button type="button" class="add-course-btn" 
+                                data-semester="<%= elective.semester_number %>" 
+                                data-elective="<%= i %>" 
+                                data-program="<%= elective.programme_id %>">Add Another Course</button>
+                        </div>
+                    <% } %>
+                </div>
+            <% }) %>
+        <% } else { %>
+            <p>No Electives Available</p>
+        <% } %>
+
+        <!-- Submit button -->
+        <button type="button" id="submit-button">Submit Allocation</button>
+    </form>
+
+    <script>
+         // Object to track how many courses each faculty is assigned and their max workload.
+         const facultyWorkload = {};
+
+        // Load max workload for each faculty from programData
+        const programData = JSON.parse(`<%- JSON.stringify(departmentData).replace(/\\/g, '\\\\').replace(/"/g, '\\"') %>`);
+
+        // Populate the initial workload object
+        programData.faculties.forEach(faculty => {
+            facultyWorkload[faculty.faculty_id] = {
+                assigned: 0, // Initially, no courses assigned
+                max_workload: faculty.max_workload
+            };
+        });
+
+        // Function to handle workload tracking and warning popup
+        function handleFacultySelection(checkbox, facultyClass) {
+            const facultyId = checkbox.value;
+            const isChecked = checkbox.checked;
+            const facultyName = checkbox.dataset.name;
+            const currentWorkload = facultyWorkload[facultyId];
+
+            if (isChecked) {
+                // Check if the faculty has already reached their max workload
+                if (currentWorkload.assigned >= currentWorkload.max_workload) {
+                    alert(`Warning: ${facultyName} is already assigned to ${currentWorkload.max_workload} courses. Cannot assign to more.`);
+                    checkbox.checked = false; // Uncheck the checkbox
+                } else {
+                    // Increase the count for this faculty member
+                    currentWorkload.assigned += 1;
+                }
+            } else {
+                // Decrease the count when a faculty is deselected
+                currentWorkload.assigned = Math.max(0, currentWorkload.assigned - 1);
+            }
+
+            const courseId = checkbox.dataset.courseId;
+            updateSelectedFaculty(courseId, facultyClass, 'selected-faculty-' + courseId);
+        }
+
+        // Function to handle faculty selection updates (common for both static and dynamic elements)
+        function updateSelectedFaculty(courseId, facultyClass, facultyDivId) {
+            const selectedFacultyDiv = document.getElementById(facultyDivId);
+
+            // Get all selected checkboxes for this course
+            const selectedCheckboxes = document.querySelectorAll(`.${facultyClass}[data-course-id="${courseId}"]:checked`);
+
+            // Get selected faculty names
+            const selectedFacultyNames = Array.from(selectedCheckboxes).map(function (checkbox) {
+                return checkbox.dataset.name;
+            });
+
+            // Update the displayed selected faculty names
+            selectedFacultyDiv.textContent = selectedFacultyNames.join(', ');
+        }
+
+        // Event listener for static faculty selection (for already existing static courses)
+        document.querySelectorAll('.faculty-checkbox').forEach(function (checkbox) {
+            checkbox.addEventListener('change', function (event) {
+                handleFacultySelection(event.target, 'faculty-checkbox');
+            });
+        });
+
+        // Event listener for static elective faculty selection
+        document.querySelectorAll('.faculty-checkbox-elective').forEach(function (checkbox) {
+            checkbox.addEventListener('change', function (event) {
+                handleFacultySelection(event.target, 'faculty-checkbox-elective');
+            });
+        });
+
+        // JavaScript to handle dynamic addition of courses for electives
+        document.querySelectorAll('.add-course-btn').forEach(function (button) {
+            button.addEventListener('click', function () {
+                const semester = button.dataset.semester;
+                const elective = button.dataset.elective;
+                const groupContainer = document.getElementById(`elective-course-group-${semester}-${elective}`);
+                const courseEntry = document.createElement('div');
+
+                const courseId = `${semester}-${elective}-${Date.now()}`; // Unique ID for each dynamically added course
+
+                courseEntry.className = 'elective-course-entry';
+                courseEntry.innerHTML = `
+                    <select name="electives[${semester}][${elective}][]">
+                        <option value="">Select a course</option>
+                        <% departmentData.courses.forEach(function (course) { %>
+                            <% if (course.course_type === 'Elective') { %>
+                                <option value="<%= course.course_id %>"><%= course.course_id %> <%= course.course_name %></option>
+                            <% } %>
+                        <% }) %>
+                    </select>
+                    <br/>
+                    <label>Assign Faculty:</label>
+                    <div class="dropdown">
+                        <button type="button">Select Faculties</button>
+                        <div class="dropdown-content">
+                            <% allFaculties.forEach(function (faculty) { %>
+                                <label>
+                                    <input type="checkbox"
+                                        class="faculty-checkbox-elective"
+                                        data-course-id="${courseId}"
+                                        value="<%= faculty.faculty_id %>"
+                                        data-name="<%= faculty.name %>">
+                                    <%= faculty.name %>
+                                </label>
+                            <% }) %>
+                        </div>
+                    </div>
+                    <div id="selected-faculty-${courseId}" class="selected-faculty"></div>
+                    <button type="button" class="remove-course-btn">Remove Course</button>
+                `;
+
+                groupContainer.querySelector('.elective-courses').appendChild(courseEntry);
+
+                // Add event listener for removing the course
+                courseEntry.querySelector('.remove-course-btn').addEventListener('click', function () {
+                    courseEntry.remove();
+                });
+
+                // Add event listener for dynamic faculty selection
+                courseEntry.querySelectorAll('.faculty-checkbox-elective').forEach(function (checkbox) {
+                    checkbox.addEventListener('change', function (event) {
+                        handleFacultySelection(event.target, 'faculty-checkbox-elective');
+                    });
+                });
+            });
+        });
+
+        // Event listener to remove course options for static elective courses
+        document.querySelectorAll('.remove-course-btn').forEach(function (button) {
+            button.addEventListener('click', function () {
+                button.parentElement.remove();
+            });
+        });
+
+
+        // Submit button click event
+        document.getElementById('submit-button').addEventListener('click', function () {
+            // Extract form data
+            const programId = document.getElementById('program').value;
+            const selectedData = {
+                program: programId,
+                coreCourses: {},
+                electives: {}
+            };
+
+            // Gather selected faculties for core courses
+            document.querySelectorAll('.faculty-checkbox:checked').forEach(function (checkbox) {
+                const courseId = checkbox.dataset.courseId;
+                if (!selectedData.coreCourses[courseId]) {
+                    selectedData.coreCourses[courseId] = [];
+                }
+                selectedData.coreCourses[courseId].push(checkbox.value);
+            });
+
+            // Gather selected faculties for elective courses
+            document.querySelectorAll('.faculty-checkbox-elective:checked').forEach(function (checkbox) {
+                const courseId = checkbox.dataset.courseId;
+                if (!selectedData.electives[courseId]) {
+                    selectedData.electives[courseId] = [];
+                }
+                selectedData.electives[courseId].push(checkbox.value);
+            });
+
+            // alert('Selected Data: ' + JSON.stringify(selectedData, null, 2));
+            // Send the JSON data to the backend
+            fetch('/addAllotments', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(selectedData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('Submission successful: ' + JSON.stringify(data));
+            })
+            .catch(error => {
+                console.error('Error submitting data:', error);
+                alert('Error submitting data. Please try again.');
+            });
+        });
+    </script>
+</body>
+
+</html>

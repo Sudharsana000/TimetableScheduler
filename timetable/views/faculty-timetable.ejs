@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faculty Timetable</title>
+    <style>
+        /* General Styles */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        h2, h3 {
+            text-align: center;
+            margin-top: 20px;
+            color: #2c3e50;
+        }
+
+        h2 {
+            margin-top: 40px;
+            font-size: 2rem;
+        }
+
+        h3 {
+            margin-top: 30px;
+            font-size: 1.5rem;
+            color: #2980b9;
+        }
+
+        /* Timetable Table Styles */
+        table.timetable {
+            width: 100%;
+            max-width: 1200px;
+            margin: 20px auto;
+            border-collapse: collapse;
+            border: 1px solid #ddd;
+        }
+
+        table.timetable th,
+        table.timetable td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: center;
+            vertical-align: middle;
+            font-size: 1rem;
+        }
+
+        table.timetable th {
+            background-color: #f4f4f4;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #2c3e50;
+            letter-spacing: 0.05rem;
+        }
+
+        table.timetable td {
+            background-color: #fff;
+            min-width: 120px;
+            transition: background-color 0.3s ease;
+        }
+
+        table.timetable td .course {
+            font-weight: bold;
+            color: #3498db;
+        }
+
+        table.timetable td .programme,
+        table.timetable td .halls {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+        }
+
+        table.timetable td .free {
+            font-style: italic;
+            color: #bdc3c7;
+        }
+
+        td.day {
+            background-color: #ecf0f1;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.05rem;
+            color: #2c3e50;
+        }
+
+        /* Hover Effect */
+        table.timetable td:hover {
+            background-color: #6eadf5;
+            color: #fff;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            table.timetable td {
+                min-width: 80px;
+                font-size: 0.85rem;
+            }
+
+            table.timetable th,
+            table.timetable td {
+                font-size: 0.75rem;
+            }
+        }
+
+        /* Header Styles */
+        header {
+            background-color: #2980b9;
+            color: white;
+            padding: 10px 0;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2rem;
+            letter-spacing: 0.1rem;
+            margin: 0;
+        }
+
+        /* Footer Styles */
+        footer {
+            background-color: #34495e;
+            color: white;
+            text-align: center;
+            padding: 10px 0;
+            position: fixed;
+            width: 100%;
+            bottom: 0;
+        }
+
+        footer p {
+            margin: 0;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Faculty Timetable System</h1>
+    </header>
+
+    <h2>Timetable for <%= faculty.name %></h2>
+
+    <% Object.keys(timetable).forEach(semester => { %>
+        <h3>Semester <%= semester %></h3>
+        <table class="timetable">
+            <thead>
+                <tr>
+                    <th>Day</th>
+                    <% for (let i = 1; i <= 7; i++) { %> <!-- Assuming 7 hours per day -->
+                        <th>Hour <%= i %></th>
+                    <% } %>
+                </tr>
+            </thead>
+            <tbody>
+                <% ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].forEach(day => { %>
+                    <tr>
+                        <td class="day"><%= day %></td>
+                        <% for (let i = 1; i <= 7; i++) { %>
+                            <td>
+                                <% if (timetable[semester][day] && timetable[semester][day][i]) { %>
+                                    <span class="course">Course: <%= timetable[semester][day][i].course %></span><br>
+                                    <span class="programme">Programme: <%= timetable[semester][day][i].programme %></span><br>
+                                    <span class="halls">Halls: <%= timetable[semester][day][i].halls %></span>
+                                <% } else { %>
+                                    <span class="free">Free</span>
+                                <% } %>
+                            </td>
+                        <% } %>
+                    </tr>
+                <% }) %>
+            </tbody>
+        </table>
+    <% }) %>
+
+</body>
+</html>

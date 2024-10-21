@@ -1,6 +1,6 @@
 import random
 import json
-from queries import get_courses, get_department_programme_map, get_labs, get_classrooms, get_groups_by_programme, get_faculty_allocation_by_course, get_elective_allocation_by_semester
+from queries import get_courses, get_department_programme_map, get_labs, get_classrooms, get_groups_by_programme, get_faculty_allocation_by_course, get_elective_allocation_by_semester, fetch_num_groups_per_sem
 
 def structure_timetable_for_groups(days, hours_per_day, num_groups):
     timetable = {}
@@ -145,8 +145,9 @@ def add_lab_courses(all_timetables, programme_timelines, programme_data, faculti
                     ]
 
                     if not available_hours:
-                        # print("Unable to allocate class for ",course_id)
-                        break
+                        # No available slots for this course in the current semester
+                        raise Exception(f"Unable to allocate class for {course_id} in programme {programme}, semester {sem}.")
+
 
                     random_available_hour = random.choice(available_hours)
                     day, hour = random_available_hour
@@ -187,7 +188,6 @@ def add_lab_courses(all_timetables, programme_timelines, programme_data, faculti
 
                     available_days.remove(day)
                     unallocated_classes_per_week -= 1
-
 
 def remove_hall_if_classroom_matches(transformed_timetable, classroom_availability):
     for day, day_hours in transformed_timetable.items():
@@ -281,8 +281,8 @@ def add_parallel_electives(all_timetables, group_timelines, faculties, classroom
                     ]
 
                     if not available_hours:
-                        # No available slots for electives
-                        break
+                        # No available slots for this course in the current semester
+                        raise Exception(f"Unable to allocate class for {course_id} in programme {programme}, semester {sem}.")
 
                     # Choose a random available day-hour slot
                     day, hour = random.choice(available_hours)
@@ -456,8 +456,7 @@ def add_regular_classes(all_timetables, programme_timelines, programme_data, fac
 
                     if not available_hours:
                         # No available slots for this course in the current semester
-                        # print("Unable to allocate class for ",course_id)
-                        break
+                        raise Exception(f"Unable to allocate class for {course_id} in programme {programme}, semester {sem}.")
 
                     # Choose a random available day-hour slot
                     day, hour = random.choice(available_hours)
@@ -497,7 +496,7 @@ def add_regular_classes(all_timetables, programme_timelines, programme_data, fac
 
                     # Decrement the unallocated count
                     unallocated_classes_per_week -= 1
-
+                    
 # Main code to generate timetables for all departments and their respective semesters
 days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
 labs = get_labs()
@@ -515,13 +514,17 @@ hours_per_day = 7
 # Example: Get data from the database
 courses_by_programme = get_courses(is_odd_semester)  # This now contains multiple departments
 
-num_groups_per_sem = {1: 2, 3: 2}  # Semester 1 and 3 have 2 groups each
+num_groups_per_sem = fetch_num_groups_per_sem(True)  # Semester 1 and 3 have 2 groups each
 
 strength_data = get_groups_by_programme(is_odd_semester=True)
 
 programme_timelines = {
     programme: {
-        sem: structure_timetable_for_groups(days, hours_per_day, num_groups_per_sem.get(sem, 1))
+        sem: structure_timetable_for_groups(
+            days, 
+            hours_per_day, 
+            num_groups_per_sem.get(programme, {}).get(sem, 1)  # Now looks up groups by programme and semester
+        )
         for sem in semesters.keys()
     }
     for programme, semesters in courses_by_programme.items()
@@ -570,5 +573,45 @@ def add_courses_for_groups(programme_timelines, programme_data, faculties, class
 # Call the updated function to allocate courses for all groups
 add_courses_for_groups(programme_timelines, courses_by_programme, faculties, classrooms, labs, hours_per_day, elective_data, department_programme_map, strength_data)
 
-json_output = json.dumps(programme_timelines)
-print(json_output)
+
+
+# i=0
+# for i in range(0, 5000):
+#     try:
+#         # print("--------------------------------------------")
+#         add_courses_for_groups(programme_timelines, courses_by_programme, faculties, classrooms, labs, hours_per_day, elective_data, department_programme_map, strength_data)
+#         # print(f"Timetable {i + 1} generated successfully.")
+#         json_output = json.dumps(programme_timelines)
+#         print(json_output)
+#         # print("--------------------------------------------")
+#     except Exception as e:
+#         pass
+#         # print("=============================================")
+#         # print(f"Error generating timetable {i + 1}: {e}")
+        
+#         # print("=============================================")
+
+# # json_output = json.dumps(programme_timelines)
+# # print(json_output)
+
+# successful_timelines = 0
+# i = 0
+
+# while successful_timelines < 1:
+#     try:
+#         # Call the function to add courses and generate timetables
+#         add_courses_for_groups(programme_timelines, courses_by_programme, faculties, classrooms, labs, hours_per_day, elective_data, department_programme_map, strength_data)
+        
+#         # If no exception occurs, increment the counter for successful timetables
+#         json_output = json.dumps(programme_timelines)
+#         print(f"Timetable {successful_timelines + 1} generated successfully.")
+#         print(json_output)
+        
+#         successful_timelines += 1  # Increment successful timelines count
+        
+#     except Exception as e:
+#         pass
+#         # If an exception occurs, print the error and continue the loop to retry
+#         # print(f"Error generating timetable {i + 1}: {e}")
+    
+#     i += 1  # Increment the loop index

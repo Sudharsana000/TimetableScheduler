@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timetable</title>
+    <style>
+        /* General Styles */
+        body {
+        font-family: Arial, sans-serif;
+        }
+
+        h2 {
+        text-align: center;
+        margin-top: 20px;
+        }
+
+        h3 {
+        text-align: center;
+        margin-top: 30px;
+        color: #333;
+        }
+
+        /* Timetable Styles */
+        table.timetable {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 30px;
+        }
+
+        table.timetable th,
+        table.timetable td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: center;
+        vertical-align: middle;
+        }
+
+        table.timetable th {
+        background-color: #f4f4f4;
+        font-weight: bold;
+        }
+
+        table.timetable td {
+        background-color: #fff;
+        min-width: 120px;
+        }
+
+        table.timetable td .course {
+        font-weight: bold;
+        color: #2c3e50;
+        }
+
+        table.timetable td .faculty,
+        table.timetable td .hall,
+        table.timetable td .lab {
+        font-size: 0.9em;
+        color: #7f8c8d;
+        }
+
+        table.timetable td .empty {
+        font-style: italic;
+        color: #bdc3c7;
+        }
+
+        td.day {
+        background-color: #ecf0f1;
+        font-weight: bold;
+        text-transform: uppercase;
+        }
+
+        /* Hover Effect */
+        table.timetable td:hover {
+        background-color: #6eadf5;
+        color: #fff;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+        table.timetable td {
+            min-width: 80px;
+        }
+
+        table.timetable th,
+        table.timetable td {
+            font-size: 0.85em;
+        }
+        }
+    </style>
+</head>
+<body>
+    <h2>Timetable for <%= student.student_name %> - <%= student.programme_id %> (Group <%= student.group %>)</h2>
+
+    <% Object.keys(timetable).forEach(semester => { %>
+    <h3>Semester <%= semester %></h3>
+    <table class="timetable">
+        <thead>
+        <tr>
+            <th>Day/Hour</th>
+            <% for (let hour = 1; hour <= 7; hour++) { %> <!-- Assuming 7 hours per day -->
+            <th>Hour <%= hour %></th>
+            <% } %>
+        </tr>
+        </thead>
+        <tbody>
+        <% ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].forEach(day => { %>
+            <tr>
+            <td class="day"><%= day %></td>
+            <% for (let hour = 1; hour <= 7; hour++) { %>
+                <td>
+                <% if (timetable[semester][day] && timetable[semester][day][hour]) { %>
+                    <div class="course"><%= timetable[semester][day][hour].courses.join(', ') %></div>
+                    <div class="faculty"><%= timetable[semester][day][hour].faculties.join(', ') %></div>
+                    <div class="hall"><%= timetable[semester][day][hour].halls.join(', ') %></div>
+                    <div class="lab"><%= timetable[semester][day][hour].labs.join(', ') %></div>
+                <% } else { %>
+                    <div class="empty">Free</div>
+                <% } %>
+                </td>
+            <% } %>
+            </tr>
+        <% }) %>
+        </tbody>
+    </table>
+    <% }) %>
+</body>
+</html>

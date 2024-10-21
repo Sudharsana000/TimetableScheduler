@@ -135,6 +135,58 @@ def get_labs():
             cursor.close()
             connection.close()
 
+
+def fetch_num_groups_per_sem(odd_sem=True):
+    connection = create_db_connection()
+    if connection is None:
+        print("Failed to connect to the database.")
+        return {}
+
+    # Determine which semesters to fetch (odd or even)
+    # semester_filter = "MOD(programme_year, 2) = 1" if odd_sem else "MOD(programme_year, 2) = 0"
+
+    query = f"""
+    SELECT p.programme_id, g.programme_year, COUNT(*) AS num_groups
+    FROM grouptable g
+    JOIN programme p ON g.programme_id = p.programme_id
+    GROUP BY p.programme_id, g.programme_year;
+    """
+
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute(query)
+        result = cursor.fetchall()
+
+        # Create a dictionary in the format {'ProgrammeName': {semester: num_groups}}
+        num_groups_per_sem = {}
+        for row in result:
+            programme_name = row['programme_id']
+            year = row['programme_year']
+            num_groups = row['num_groups']
+
+            # Map years to semesters based on odd_sem=True (1st sem from year1, 3rd sem from year2, etc.)
+            if odd_sem:
+                semester = 2 * (year - 1) + 1  # Odd semesters: 1, 3, 5, ...
+            else:
+                semester = 2 * year  # Even semesters: 2, 4, 6, ...
+
+            # Initialize programme dictionary if not already present
+            if programme_name not in num_groups_per_sem:
+                num_groups_per_sem[programme_name] = {}
+
+            # Add the semester and group count to the programme
+            num_groups_per_sem[programme_name][semester] = num_groups
+
+        return num_groups_per_sem
+
+    except mysql.connector.Error as e:
+        print(f"Error: {e}")
+        return {}
+
+    finally:
+        if cursor:
+            cursor.close()
+
 # Function to get labs grouped by dept_id along with department name and their strength
 def get_classrooms():
     connection = create_db_connection()

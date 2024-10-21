@@ -65,3 +65,46 @@ exports.deleteFaculty = (faculty_id, callback) => {
     });
   });
 };
+
+exports.getFacultyById = (faculty_id, callback) => {
+  const query = `SELECT * FROM faculty WHERE faculty_id = ?`;
+  db.query(query, [faculty_id], (err, result) => {
+    if (err) {
+      callback(err, null);
+    } else {
+      callback(null, result);
+    }
+  });
+};
+
+// Export a method to get the timetable based on faculty_id
+exports.getFacultyTimetable = (faculty_id, callback) => {
+  const query = `
+    SELECT 
+      t.programme_id,
+      t.semester,
+      t.year_group,
+      t.day,
+      t.hour,
+      t.course_ids,
+      t.hall_ids,
+      t.lab_ids,
+      c.course_name,
+      c.semester_number
+    FROM 
+      timetable t
+    JOIN 
+      faculty_allocation fa ON JSON_CONTAINS(t.course_ids, JSON_QUOTE(fa.course_id))
+    JOIN 
+      course c ON fa.course_id = c.course_id
+    WHERE 
+      fa.faculty_id = ?
+  `;
+  db.query(query, [faculty_id], (err, result) => {
+    if (err) {
+      callback(err, null);
+    } else {
+      callback(null, result);
+    }
+  });
+};

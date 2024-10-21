@@ -1,3 +1,5 @@
+use timetable_db;
+
 CREATE TABLE classrooms (
     hall_id VARCHAR(4) PRIMARY KEY,
     block VARCHAR(5),
@@ -5,6 +7,16 @@ CREATE TABLE classrooms (
     capacity INT,
     facility JSON
 );
+
+INSERT INTO course (course_id, course_name, course_type, hours_per_week, programme_id, semester_number) VALUES
+('18X101', 'Calculus and its Applications', 'Core', 3, 'BSc CSD', 1),
+('18X102', 'Environmental Science and Green Computing', 'Core', 3, 'BSc CSD', 1),
+('18X103', 'C Programming', 'Core', 3, 'BSc CSD', 1),
+('18X104', 'Analog and Digital Electronics', 'Core', 3, 'BSc CSD', 1),
+('18X105', 'English', 'Core', 3, 'BSc CSD', 1),
+('18X106', 'C Programming Laboratory', 'Lab', 2, 'BSc CSD', 1),
+('18X107', 'Web Design Laboratory', 'Lab', 2, 'BSc CSD', 1),
+('18X108', 'Analog and Digital Electronics Laboratory', 'Lab', 2, 'BSc CSD', 1);
 
 
 CREATE TABLE users (
@@ -67,6 +79,22 @@ create table timetable (
     timetable_data JSON
 );
 
-
 select * from users;
 select * from labs;
+
+ALTER TABLE students
+ADD COLUMN programme_id VARCHAR(10),
+ADD COLUMN `group` VARCHAR(5),
+ADD CONSTRAINT fk_programme
+    FOREIGN KEY (programme_id) REFERENCES programme(programme_id)
+    ON DELETE CASCADE;
+
+ALTER TABLE students
+ADD COLUMN student_name VARCHAR(255);
+
+ALTER TABLE students
+ADD COLUMN programme_id VARCHAR(10),
+ADD COLUMN `group` VARCHAR(5),
+ADD CONSTRAINT fk_programme
+    FOREIGN KEY (programme_id) REFERENCES programme(programme_id)
+    ON DELETE CASCADE;
