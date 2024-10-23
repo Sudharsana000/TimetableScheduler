@@ -9,14 +9,14 @@ CREATE TABLE classrooms (
 );
 
 INSERT INTO course (course_id, course_name, course_type, hours_per_week, programme_id, semester_number) VALUES
-('18X101', 'Calculus and its Applications', 'Core', 3, 'BSc CSD', 1),
-('18X102', 'Environmental Science and Green Computing', 'Core', 3, 'BSc CSD', 1),
-('18X103', 'C Programming', 'Core', 3, 'BSc CSD', 1),
-('18X104', 'Analog and Digital Electronics', 'Core', 3, 'BSc CSD', 1),
-('18X105', 'English', 'Core', 3, 'BSc CSD', 1),
-('18X106', 'C Programming Laboratory', 'Lab', 2, 'BSc CSD', 1),
-('18X107', 'Web Design Laboratory', 'Lab', 2, 'BSc CSD', 1),
-('18X108', 'Analog and Digital Electronics Laboratory', 'Lab', 2, 'BSc CSD', 1);
+('18X105', 'English', 'Elective', 3, 'BSc CSD', NULL);
+
+INSERT INTO faculty (faculty_id, dept_id, name, email, designation) VALUES
+('AMCS001', 'AMCS', 'Dr Poomagal S', 'spm.amcs@psgtech.ac.in', 'Associate Professor'),
+('AMCS002', 'AMCS', 'Dr Sasikumar M', 'msr.amcs@psgtech.ac.in', 'Assistant Professor(Sl. Gr.)'),
+('AMCS003', 'AMCS', 'Dr Brindha N', 'snb.amcs@psgtech.ac.in', 'Assistant Professor(Sl. Gr.)'),
+('AMCS004', 'AMCS', 'Mrs Deepa S', 'nsd.amcs@psgtech.ac.in', 'Assistant Professor(Sr. Gr.)'),
+('AMCS005', 'AMCS', 'Ms Sudha S S', NULL, 'Assistant Professor');
 
 
 CREATE TABLE users (
@@ -98,3 +98,32 @@ ADD COLUMN `group` VARCHAR(5),
 ADD CONSTRAINT fk_programme
     FOREIGN KEY (programme_id) REFERENCES programme(programme_id)
     ON DELETE CASCADE;
+    
+CREATE TABLE faculty_workload (
+    faculty_id VARCHAR(8) PRIMARY KEY,  -- faculty_id as primary key
+    workload_assigned INT DEFAULT 0,    -- workload_assigned to store the workload count
+    FOREIGN KEY (faculty_id) REFERENCES faculty(faculty_id) ON DELETE CASCADE  -- foreign key reference to faculty table
+);
+
+DELIMITER $$
+
+CREATE TRIGGER update_faculty_workload
+AFTER INSERT ON faculty_allocation
+FOR EACH ROW
+BEGIN
+    -- Check if the faculty_id exists in the faculty_workload table
+    IF EXISTS (SELECT 1 FROM faculty_workload WHERE faculty_id = NEW.faculty_id) THEN
+        -- If it exists, increment the workload_assigned
+        UPDATE faculty_workload
+        SET workload_assigned = workload_assigned + 1
+        WHERE faculty_id = NEW.faculty_id;
+    ELSE
+        -- If it does not exist, insert a new row
+        INSERT INTO faculty_workload (faculty_id, workload_assigned)
+        VALUES (NEW.faculty_id, 1);
+    END IF;
+END$$
+
+DELIMITER ;
+
+

@@ -139,14 +139,28 @@ router.post('/home', (req, res) => {
       } else if (userType === 'faculty_incharge') {
         // Fetch department programs, courses, faculties, group details, and workload if the user is a faculty in-charge
         fetchDepartmentData(deptId, (err, departmentData) => {
-          if (err) {
-            console.error('Failed to fetch department data:', err);
-            res.status(500).json({ error: 'Failed to fetch department data' });
-          } else {
-            res.render('allotment', { departmentData, allFaculties: departmentData.allFaculties });
-          }
+            if (err) {
+                console.error('Failed to fetch department data:', err);
+                res.status(500).json({ error: 'Failed to fetch department data' });
+            } else {
+                // Fetch faculty allocation details
+                fetchFacultyAllocation((err, facultyAllocations) => {
+                    if (err) {
+                        console.error('Failed to fetch faculty allocation data:', err);
+                        res.status(500).json({ error: 'Failed to fetch faculty allocation data' });
+                    } else {
+                        // Pass the departmentData and facultyAllocations to the render function
+                        console.log(facultyAllocations);
+                        res.render('allotment', {
+                            departmentData,
+                            allFaculties: departmentData.allFaculties,
+                            facultyAllocations // Pass the faculty allocation data here
+                        });
+                    }
+                });
+            }
         });
-      } else if (userType === 'student') {
+    } else if (userType === 'student') {
         // Fetch student details
         studentModel.getStudentByRollNo(email, (err, student) => {
           if (err) {
@@ -270,6 +284,18 @@ router.post('/home', (req, res) => {
   });
 });
 
+// Function to fetch faculty allocation details
+function fetchFacultyAllocation(callback) {
+  const query = 'SELECT faculty_id, course_id FROM faculty_allocation';
+  db.query(query, (err, results) => {
+      if (err) {
+          return callback(err, null);
+      }
+      return callback(null, results);
+  });
+}
+
+
 router.get('/homescreen', (req, res) => {
    res.render('home');
 });
@@ -299,13 +325,89 @@ router.put('/users/:id', (req, res) => {
   });
 });
 
-router.post('/addAllotments', (req, res) => {
+router.post('/addAllotments', async (req, res) => {
   const allocationData = req.body;
 
-  console.log(allocationData);
+  console.log('Received Data:', JSON.stringify(allocationData, null, 2));
 
-  res.status(200).json({ message: 'Data received and processed.' });
+  try {
+    // Extracting data for processing
+    const program = allocationData.program;
+    const coreCourses = allocationData.coreCourses;
+    const electives = allocationData.electives;
+
+    // Faculty allocation for core courses
+    if (coreCourses && Object.keys(coreCourses).length > 0) {
+      for (const courseId in coreCourses) {
+        const faculties = coreCourses[courseId];
+
+        for (const facultyId of faculties) {
+          // Insert into faculty_allocation (for core courses)
+          await insertFacultyAllocation(facultyId, courseId);
+        }
+      }
+    }
+
+    // Faculty and elective allocation for elective courses
+    if (electives && Object.keys(electives).length > 0) {
+      for (const semester in electives) {
+        const electiveDetails = electives[semester];
+
+        for (const electiveName in electiveDetails) {
+          // Extract the numeric part from 'Elective 1', 'Elective 2', etc.
+          const electiveNo = electiveName.match(/\d+/)[0];  // This will extract '1' from 'Elective 1'
+
+          const courses = electiveDetails[electiveName];
+
+          for (const courseId in courses) {
+            const faculties = courses[courseId].faculty;
+            const strength = parseInt(courses[courseId].strength);
+
+            for (const facultyId of faculties) {
+              // Insert into faculty_allocation (for electives)
+              await insertFacultyAllocation(facultyId, courseId);
+            }
+
+            // Insert into elective_allocation (only for electives)
+            await insertElectiveAllocation(courseId, program, electiveNo, semester, strength);
+          }
+        }
+      }
+    }
+
+    // If all insertions are successful, send response back
+    res.status(200).json({ message: 'Data received and processeddd.' });
+  } catch (error) {
+    console.error('Error processing data:', error);
+    res.status(500).json({ message: 'Error processing data' });
+  }
 });
+
+// Insert into faculty_allocation if not exists
+async function insertFacultyAllocation(facultyId, courseId) {
+  const query = `
+    INSERT INTO faculty_allocation (faculty_id, course_id)
+    SELECT * FROM (SELECT ? AS faculty_id, ? AS course_id) AS tmp
+    WHERE NOT EXISTS (
+      SELECT 1 FROM faculty_allocation WHERE faculty_id = ? AND course_id = ?
+    ) LIMIT 1;
+  `;
+  await db.query(query, [facultyId, courseId, facultyId, courseId]);
+}
+
+// Insert into elective_allocation if not exists
+async function insertElectiveAllocation(courseId, programmeId, electiveNo, semesterNumber, strength) {
+  const query = `
+    INSERT INTO elective_allocation (course_id, programme_id, elective_no, semester_number, strength)
+    SELECT * FROM (SELECT ? AS course_id, ? AS programme_id, ? AS elective_no, ? AS semester_number, ? AS strength) AS tmp
+    WHERE NOT EXISTS (
+      SELECT 1 FROM elective_allocation WHERE course_id = ? AND programme_id = ? AND elective_no = ? AND semester_number = ?
+    ) LIMIT 1;
+  `;
+  await db.query(query, [courseId, programmeId, electiveNo, semesterNumber, strength, courseId, programmeId, electiveNo, semesterNumber]);
+}
+
+
 
 // Delete user
 router.delete('/users/:id', (req, res) => {
