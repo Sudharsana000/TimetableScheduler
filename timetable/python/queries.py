@@ -466,7 +466,6 @@ def is_odd_semester_check():
         season_query = """
             SELECT sem_season 
             FROM season 
-            WHERE status = 'closed' 
             LIMIT 1;
         """
 
@@ -486,6 +485,65 @@ def is_odd_semester_check():
         else:
             print("No open season found.")
             return None
+
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        return None
+
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+def get_dept_classrooms(programme_id):
+    connection = create_db_connection()
+    if connection is None:
+        print("Failed to connect to the database.")
+        return None
+
+    try:
+        cursor = connection.cursor()
+
+        # Query to get the department and block based on programme_id
+        dept_block_query = """
+            SELECT d.block 
+            FROM programme p
+            JOIN department d ON p.dept_id = d.dept_id
+            WHERE p.programme_id = %s;
+        """
+
+        cursor.execute(dept_block_query, (programme_id,))
+        result = cursor.fetchone()
+
+        if result is None:
+            print("No block found for the given programme_id.")
+            return None
+
+        dept_block = result[0]  # Extract block from the result
+
+        # Query to get all classrooms in that block
+        classrooms_query = """
+            SELECT hall_id, block, floor, capacity, facility
+            FROM classrooms
+            WHERE block = %s;
+        """
+
+        cursor.execute(classrooms_query, (dept_block,))
+        classrooms = cursor.fetchall()
+
+        # Return classrooms data as a list of dictionaries
+        classrooms_list = [
+            {
+                'hall_id': row[0],
+                'block': row[1],
+                'floor': row[2],
+                'capacity': row[3],
+                'facility': row[4]
+            }
+            for row in classrooms
+        ]
+
+        return classrooms_list
 
     except mysql.connector.Error as err:
         print(f"Error: {err}")

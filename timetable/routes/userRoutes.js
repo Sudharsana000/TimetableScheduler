@@ -10,7 +10,7 @@ router.get('/', (req, res) => {
   res.render('index');
 });
 
-/// Function to fetch department data, including all faculties, groups, and workload
+// Function to fetch department data, including all faculties, groups, and workload
 const fetchDepartmentData = (deptId, callback) => {
   // SQL query to fetch all programs in the given department
   const fetchProgramsQuery = `
@@ -19,15 +19,33 @@ const fetchDepartmentData = (deptId, callback) => {
     WHERE dept_id = ?;
   `;
 
-  // SQL query to fetch all courses in the department based on semester
-  const fetchCoursesQuery = `
+    const fetchCoursesQuery = `
+    WITH current_season AS (
+      SELECT sem_season 
+      FROM season 
+      WHERE status = 'open' 
+      LIMIT 1
+    )
     SELECT course_id, course_name, course_type, hours_per_week, programme_id, semester_number 
     FROM course
     WHERE programme_id IN (
-      SELECT programme_id FROM programme WHERE dept_id = ?
-    ) 
+      SELECT programme_id 
+      FROM programme 
+      WHERE dept_id = ?
+    )
+    AND (
+      MOD(semester_number, 2) = (
+        CASE 
+          WHEN (SELECT sem_season FROM current_season) = 'odd' THEN 1
+          WHEN (SELECT sem_season FROM current_season) = 'even' THEN 0
+        END
+      )
+      OR semester_number IS NULL
+    )
     ORDER BY semester_number;
   `;
+
+
 
   // SQL query to fetch all faculties and their workload based on designation
   const fetchFacultiesQuery = `
@@ -43,14 +61,29 @@ const fetchDepartmentData = (deptId, callback) => {
     FROM faculty;
   `;
 
-  // SQL query to fetch elective details (number of electives in each semester)
   const fetchElectiveDetailsQuery = `
-    SELECT programme_id, semester_number, number_of_electives
-    FROM elective_details
-    WHERE programme_id IN (
-      SELECT programme_id FROM programme WHERE dept_id = ?
-    );
-  `;
+  WITH current_season AS (
+    SELECT sem_season 
+    FROM season 
+    WHERE status = 'open' 
+    LIMIT 1
+  )
+  SELECT programme_id, semester_number, number_of_electives
+  FROM elective_details
+  WHERE programme_id IN (
+    SELECT programme_id 
+    FROM programme 
+    WHERE dept_id = ?
+  )
+  AND MOD(semester_number, 2) = (
+    CASE 
+      WHEN (SELECT sem_season FROM current_season) = 'odd' THEN 1
+      WHEN (SELECT sem_season FROM current_season) = 'even' THEN 0
+    END
+  )
+  ORDER BY semester_number;
+`;
+
 
   // SQL query to fetch number of groups in each program and semester
   const fetchGroupDetailsQuery = `
@@ -152,8 +185,37 @@ router.post('/home', (req, res) => {
                 console.error('Failed to fetch season status:', err);
                 res.status(500).json({ error: 'Failed to fetch season status' });
             } else if (seasonStatus === 'closed') {
-                // If the season is closed, send a response indicating the allocation is closed
-                res.status(400).json({ error: 'Faculty allocation is closed for this semester' });
+              // Season is closed, but we still render the allotment page with a message
+              fetchDepartmentData(deptId, (err, departmentData) => {
+                if (err) {
+                  console.error('Failed to fetch department data:', err);
+                  return res.status(500).json({ error: 'Failed to fetch department data' });
+                }
+    
+                fetchFacultyAllocation((err, facultyAllocations) => {
+                  if (err) {
+                    console.error('Failed to fetch faculty allocation data:', err);
+                    return res.status(500).json({ error: 'Failed to fetch faculty allocation data' });
+                  }
+    
+                  fetchElectiveAllocation(deptId, (err, electiveAllocations) => {
+                    if (err) {
+                      console.error('Failed to fetch elective allocation data:', err);
+                      return res.status(500).json({ error: 'Failed to fetch elective allocation data' });
+                    }
+    
+                    // Render the page with a message stating the timetable allotment is closed
+                    res.render('allotment', {
+                      userID: email,
+                      email: email,
+                      password : password,
+                      deptId: deptId,
+                      seasonClosed: true, // Pass seasonClosed as true
+                      message: 'Timetable allotment for this semester has been closed.'
+                    });
+                  });
+                });
+              });
             } else {
                 // Fetch department programs, courses, faculties, group details, and workload if the user is a faculty in-charge
                 fetchDepartmentData(deptId, (err, departmentData) => {
@@ -173,13 +235,19 @@ router.post('/home', (req, res) => {
                                         console.error('Failed to fetch elective allocation data:', err);
                                         res.status(500).json({ error: 'Failed to fetch elective allocation data' });
                                     } else {
+                                        console.log(electiveAllocations);
                                         // Pass departmentData, facultyAllocations, and electiveAllocations to the render function
                                         res.render('allotment', {
                                             userID: email,
                                             departmentData,
                                             allFaculties: departmentData.allFaculties,
                                             facultyAllocations,  // Pass the faculty allocation data
-                                            electiveAllocations  // Pass the elective allocation data
+                                            electiveAllocations,  // Pass the elective allocation data
+                                            email: email,
+                                            password : password,
+                                            deptId: deptId,
+                                            seasonClosed: false,
+                                            message: ''
                                         });
                                     }
                                 });
@@ -405,8 +473,6 @@ router.put('/users/:id', (req, res) => {
 router.post('/addAllotments', async (req, res) => {
   const allocationData = req.body;
 
-  console.log('Received Data:', JSON.stringify(allocationData, null, 2));
-
   try {
     const program = allocationData.program;
     const coreCourses = allocationData.coreCourses;
@@ -461,36 +527,70 @@ router.post('/addAllotments', async (req, res) => {
   }
 });
 
-// Delete existing allocations before inserting new data
-async function deleteExistingAllocations(programId) {
-  // Execute the query and get the courses
-  const result = await db.query('SELECT course_id FROM course WHERE programme_id = ?', [programId]);
+// // Delete existing allocations before inserting new data
+// async function deleteExistingAllocations(programId) {
+//   // Execute the query and get the courses
+//   const result = await db.query('SELECT course_id FROM course WHERE programme_id = ?', [programId]);
 
-  // Check if the result contains rows
-  const courses = result[0]; // Assuming the first item contains the rows in some query systems
-  // If it's in the structure of result.rows, use: const courses = result.rows;
+//   // Check if the result contains rows
+//   const courses = result[0]; // Assuming the first item contains the rows in some query systems
+//   // If it's in the structure of result.rows, use: const courses = result.rows;
 
-  // Check if courses is an array
-  if (Array.isArray(courses) && courses.length > 0) {
-    const courseIds = courses.map(course => course.course_id);
+//   // Check if courses is an array
+//   if (Array.isArray(courses) && courses.length > 0) {
+//     const courseIds = courses.map(course => course.course_id);
+
+//     if (courseIds.length > 0) {
+//       // Delete from faculty_allocation for the identified course_ids
+//       const facultyDeletionQuery = `
+//         DELETE FROM faculty_allocation WHERE course_id IN (?);
+//       `;
+//       await db.query(facultyDeletionQuery, [courseIds]);
+
+//       // Delete from elective_allocation for the identified course_ids and the given program_id
+//       const electiveDeletionQuery = `
+//         DELETE FROM elective_allocation WHERE course_id IN (?) AND programme_id = ?;
+//       `;
+//       await db.query(electiveDeletionQuery, [courseIds, programId]);
+//     }
+//   } else {
+//     console.log('No courses found for the given program.');
+//   }
+// }
+
+const deleteExistingAllocations = async (program) => {
+  try {
+    // First, find all course_ids associated with the given programme_id
+    const courseIds = await db.query(
+      'SELECT course_id FROM course WHERE programme_id = ?',
+      [program]
+    );
 
     if (courseIds.length > 0) {
-      // Delete from faculty_allocation for the identified course_ids
-      const facultyDeletionQuery = `
-        DELETE FROM faculty_allocation WHERE course_id IN (?);
-      `;
-      await db.query(facultyDeletionQuery, [courseIds]);
+      const courseIdList = courseIds.map(row => row.course_id);
 
-      // Delete from elective_allocation for the identified course_ids and the given program_id
-      const electiveDeletionQuery = `
-        DELETE FROM elective_allocation WHERE course_id IN (?) AND programme_id = ?;
-      `;
-      await db.query(electiveDeletionQuery, [courseIds, programId]);
+      // Delete from faculty_allocation where course_id matches the list
+      await db.query(
+        'DELETE FROM faculty_allocation WHERE course_id IN (?)',
+        [courseIdList]
+      );
+
+      // Delete from elective_allocation where programme_id matches
+      await db.query(
+        'DELETE FROM elective_allocation WHERE programme_id = ?',
+        [program]
+      );
+
+      console.log(`Deleted allocations for program: ${program}`);
+    } else {
+      console.log(`No courses found for program: ${program}`);
     }
-  } else {
-    console.log('No courses found for the given program.');
+  } catch (error) {
+    console.error('Error deleting existing allocations:', error);
+    throw error;  // Re-throw error to be caught by the calling function
   }
-}
+};
+
 
 // Insert into faculty_allocation if not exists
 async function insertFacultyAllocation(facultyId, courseId) {

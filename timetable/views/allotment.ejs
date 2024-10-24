@@ -8,6 +8,12 @@
 </head>
 
 <body>
+    <%- include('faculty-incharge-header', {email: email, password: password, deptId: deptId }) %>
+    <% if (seasonClosed) { %>
+        <div class="alert alert-warning">
+            <%= message %>
+        </div>
+        <% } else { %>
     <form id="faculty-allocation-form">
         <!-- Program Dropdown -->
         <label for="program">Select Program:</label>
@@ -126,7 +132,6 @@
                                             </tr>
                                         <% }) %>
                                     <% } else { %>
-                                        <p>No Elective Courses Available</p>
                                     <% } %>
                                 </div>
                                 
@@ -420,7 +425,6 @@
                 strength: 0
             };
         }
-
         selectedData.electives[semesterNo][`Elective ${electiveNo}`][courseIdActual].faculty.push(checkbox.value);
     });
 
@@ -474,10 +478,8 @@
         alert('Error submitting data. Please try again.');
     });
 });
-
-    
     </script>
-    
+   <% } %>
 </body>
 
 </html>

@@ -28,16 +28,20 @@
     
           <ul class="nav nav-pills">
             <ul class="nav nav-pills">
-                <li class="nav-item">
-                  <a href="/>" class="nav-link allocation">Allocation</a>
-                </li>
-                <li class="nav-item">
+              <li class="nav-item">
+                <form action="/home" method="POST" class="d-inline">
+                    <input type="hidden" name="email" value="<%= email %>">
+                    <input type="hidden" name="password" value="<%= password %>">
+                    <button type="submit" class="nav-link allocation">Allocation</button>
+                </form>
+              </li>
+                <!-- <li class="nav-item">
                   <a href="/my-timetable?userID=<%= userID %>" class="nav-link my-timetable">My Timetable</a>
-                </li>
+                </li> -->
                 <li class="nav-item">
-                  <a href="/all-timetables?userID=<%= userID %>" class="nav-link all-timetables">All Timetables</a>
+                  <a href="/departments/<%= deptId %>" class="nav-link all-timetables">All Timetables</a>
                 </li>
-              </ul>              
+              </ul>
           </ul>
         </header>
     </div>

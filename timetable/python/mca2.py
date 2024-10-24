@@ -1,6 +1,6 @@
 import random
 import json
-from queries import get_courses, get_department_programme_map, get_labs, get_classrooms, get_groups_by_programme, get_faculty_allocation_by_course, get_elective_allocation_by_semester, fetch_num_groups_per_sem, is_odd_semester_check
+from queries import get_courses, get_department_programme_map, get_labs, get_classrooms, get_groups_by_programme, get_faculty_allocation_by_course, get_elective_allocation_by_semester, fetch_num_groups_per_sem, is_odd_semester_check, get_dept_classrooms
 from cost_computation import compute_costs_for_single_timetable
 import copy
 
@@ -342,6 +342,8 @@ def add_parallel_electives(all_timetables, group_timelines, faculties, classroom
                     day_hour_combinations.remove((day, hour))
 
 def add_regular_classes(all_timetables, programme_timelines, programme_data, faculties, classrooms, strength_data, hours_per_day, existing_classes=None):
+    classrooms = get_dept_classrooms(list(programme_timelines.keys())[0])
+    
     classroom_availability = {
         day: {hour: list(classrooms) for hour in range(1, hours_per_day + 1)}
         for day in list(list(programme_timelines.values())[0].values())[0].keys()
@@ -427,7 +429,6 @@ def add_regular_classes(all_timetables, programme_timelines, programme_data, fac
                     if not available_hours:
                         break  # No available slots
 
-                    # Choose a random available day-hour slot
                     day, hour = random.choice(available_hours)
 
                     # Select suitable classrooms based on strength

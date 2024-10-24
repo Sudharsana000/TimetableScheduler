@@ -119,6 +119,49 @@ VALUES
 ('23MXCA', 'Entrepreneurship', 'Elective', 3),
 ('23MXCB', 'PMBS', 'Elective', 3);
 
+INSERT INTO course (course_id, course_name, course_type, hours_per_week, programme_id, semester_number) VALUES
+('18X301', 'Probability and Statistics', 'Core', 4, 'BSc CSD', 3),
+('18X302', 'Database Management Systems', 'Core', 3, 'BSc CSD', 3),
+('18X303', 'Microprocessors and Microcontroller', 'Core', 3, 'BSc CSD', 3),
+('18X304', 'Operating Systems', 'Core', 3, 'BSc CSD', 3),
+('18X305', 'Design and Analysis of Algorithms', 'Core', 3, 'BSc CSD', 3),
+('18X306', 'Database Management Systems Laboratory', 'Lab', 4, 'BSc CSD', 3),
+('18X307', 'Operating Systems Laboratory (Linux)', 'Lab', 4, 'BSc CSD', 3),
+('18X308', 'Design and Analysis of Algorithms in Python Laboratory', 'Lab', 4, 'BSc CSD', 3);
+
+INSERT INTO course (course_id, course_name, course_type, hours_per_week, programme_id, semester_number) VALUES
+('18X501', 'Mobile Computing', 'Core', 3, 'BSc CSD', 5),
+('18X502', 'Computer Graphics and Multimedia', 'Core', 3, 'BSc CSD', 5),
+('18X503', 'Machine Learning', 'Core', 3, 'BSc CSD', 5),
+('18X504', 'Mobile Computing Laboratory', 'Lab', 4, 'BSc CSD', 5),
+('18X505', 'Computer Graphics and Multimedia Laboratory', 'Lab', 4, 'BSc CSD', 5),
+('18X506', 'Machine Learning Laboratory', 'Lab', 4, 'BSc CSD', 5);
+
+INSERT INTO course (course_id, course_name, course_type, hours_per_week, programme_id, semester_number) VALUES
+('18XA01', 'Web Services', 'Elective', 3, 'BSc CSD', null),
+('18XA02', 'Open Source Software', 'Elective', 3, 'BSc CSD', null),
+('18XA03', 'Service Oriented Architecture', 'Elective', 3, 'BSc CSD', null),
+('18XA04', 'Artificial Intelligence', 'Elective', 3, 'BSc CSD', null),
+('18XA05', 'Data Mining', 'Elective', 3, 'BSc CSD', null),
+('18XA06', 'Natural Language Processing', 'Elective', 3, 'BSc CSD', null),
+('18XA07', 'Semantic Web', 'Elective', 3, 'BSc CSD', null),
+('18XA08', 'Cloud Computing', 'Elective', 3, 'BSc CSD', null),
+('18XA09', 'Deep Learning', 'Elective', 3, 'BSc CSD', null),
+('18XA10', 'Big Data Analytics', 'Elective', 3, 'BSc CSD', null),
+('18XA11', 'Graph Theory', 'Elective', 3, 'BSc CSD', null),
+('18XA12', 'Software Patterns', 'Elective', 3, 'BSc CSD', null),
+('18XA13', 'Advanced Database Management Systems', 'Elective', 3, 'BSc CSD', null),
+('18XA14', 'Embedded System and Design', 'Elective', 3, 'BSc CSD', null),
+('18XA15', 'Information Search and Retrieval', 'Elective', 3, 'BSc CSD', null),
+('18XA16', 'Virtual Reality', 'Elective', 3, 'BSc CSD', null);
+
+
+
+INSERT INTO faculty (faculty_id, dept_id, name, email, designation) VALUES
+('AMCS006', 'AMCS', 'Dr Jeevadoss S', 'sjd.amcs@psgtech.ac.in', 'Assistant Professor(Sr. Gr.)'),
+('AMCS007', 'AMCS', 'Dr Priya R', 'rpr.amcs@psgtech.ac.in', 'Assistant Professor(Sr. Gr.)');
+
+
 INSERT INTO course (course_id, course_name, course_type, hours_per_week, programme_id)
 VALUES 
 ('23MXCA', 'Entrepreneurship', 'Elective', 3, 'MCA'),
