@@ -452,3 +452,47 @@ def get_elective_allocation_by_semester(is_odd_semester=True):
         if connection.is_connected():
             cursor.close()
             connection.close()
+
+def is_odd_semester_check():
+    connection = create_db_connection()  # Assuming you have a function to create a DB connection
+    if connection is None:
+        print("Failed to connect to the database.")
+        return None
+
+    try:
+        cursor = connection.cursor()
+
+        # Query to fetch the current semester season
+        season_query = """
+            SELECT sem_season 
+            FROM season 
+            WHERE status = 'closed' 
+            LIMIT 1;
+        """
+
+        cursor.execute(season_query)
+        season_data = cursor.fetchone()
+
+        if season_data is not None:
+            sem_season = season_data[0]
+            # Return True if the semester season is odd, else False if even
+            if sem_season == 'odd':
+                return True
+            elif sem_season == 'even':
+                return False
+            else:
+                print("No valid semester season found.")
+                return None
+        else:
+            print("No open season found.")
+            return None
+
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        return None
+
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+

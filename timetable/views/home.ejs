@@ -7,19 +7,105 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
 </head>
 <body>
-    <div class="container">
+    <div class="container mt-5">
         <%- include('header') %>
-        <h1>Home</h1>
-        <!-- Button to generate timetable -->
-        <button id="generate-timetable-btn" class="btn btn-primary">Generate Timetable</button>
-        <!-- Button to store timetable -->
-        <button id="store-timetable-btn" class="btn btn-success mt-3">Store Timetable</button>
+        <h1 class="mb-4">SmartScheduler: Timetable Management</h1>
+
+        <!-- Step 1: Select Semester -->
+        <div class="mb-3">
+            <h4>Select Semester</h4>
+            <form id="select-semester-form">
+                <select class="form-select" id="semester-type-select">
+                    <option value="odd">Odd Semester</option>
+                    <option value="even">Even Semester</option>
+                </select>
+                <button type="button" class="btn btn-primary mt-3" id="set-allocation-btn">Set Allocation</button>
+            </form>
+        </div>
+
+        <!-- Step 2: Manage Allocation -->
+        <div class="mb-3">
+            <h4>Manage Allocation</h4>
+            <button id="get-allocation-btn" class="btn btn-info">Get Allocation</button>
+        </div>
+
+        <!-- Step 3: Timetable Actions -->
+        <div class="mb-3">
+            <h4>Timetable Actions</h4>
+            <button id="generate-timetable-btn" class="btn btn-primary" disabled>Generate Timetable</button>
+            <button id="store-timetable-btn" class="btn btn-success mt-3" disabled>Store Timetable</button>
+        </div>
+
         <!-- Div to display the generated timetable -->
         <div id="timetable-display" class="mt-4"></div>
+
     </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     <script>
         let generatedTimetable = null;
+        let allocationStatus = '<%= seasonData[0].status %>';  // Fetch status from passed data
+
+        // Set the initial state of the buttons based on the season data
+        document.addEventListener('DOMContentLoaded', function() {
+            if (allocationStatus === 'open') {
+                document.getElementById('get-allocation-btn').innerText = 'Close Allocation';
+                document.getElementById('generate-timetable-btn').disabled = true;
+            } else if (allocationStatus === 'closed') {
+                document.getElementById('generate-timetable-btn').disabled = false;
+            }
+        });
+
+        // Event listener to set allocation based on semester type
+        document.getElementById('set-allocation-btn').addEventListener('click', function() {
+            const selectedSemesterType = document.getElementById('semester-type-select').value;
+            fetch('/timetable/allocation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ semesterType: selectedSemesterType })
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert('Allocation set successfully!');
+                    allocationStatus = 'open';
+                    document.getElementById('generate-timetable-btn').disabled = true;
+                    document.getElementById('get-allocation-btn').innerText = 'Close Allocation';
+                } else {
+                    alert('Failed to set the allocation.');
+                }
+            })
+            .catch(error => {
+                console.error('Error setting allocation:', error);
+            });
+        });
+
+        // Event listener to toggle allocation
+        document.getElementById('get-allocation-btn').addEventListener('click', function() {
+            if (allocationStatus === 'open') {
+                fetch('/timetable/close-allocation', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        alert('Allocation closed successfully!');
+                        allocationStatus = 'closed';
+                        document.getElementById('generate-timetable-btn').disabled = false;
+                        document.getElementById('store-timetable-btn').disabled = true;
+                        document.getElementById('get-allocation-btn').innerText = 'Get Allocation';
+                    } else {
+                        alert('Failed to close the allocation.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error closing allocation:', error);
+                });
+            }
+        });
 
         // Event listener to generate the timetable
         document.getElementById('generate-timetable-btn').addEventListener('click', function() {
@@ -29,6 +115,7 @@
                     generatedTimetable = data;
                     const timetableDisplay = document.getElementById('timetable-display');
                     timetableDisplay.innerHTML = generateTimetableHTML(data);
+                    document.getElementById('store-timetable-btn').disabled = false;
                 })
                 .catch(error => {
                     console.error('Error fetching timetable:', error);
@@ -63,46 +150,30 @@
         // Function to generate HTML for the timetable
         function generateTimetableHTML(timetable) {
             let html = '<div class="table-responsive">';
-
-            // Loop through departments (e.g., MCA)
             for (const [department, semesters] of Object.entries(timetable)) {
                 html += `<h2>Department: ${department}</h2>`;
-
-                // Loop through semesters (e.g., 1, 2, 3)
                 for (const [semester, groups] of Object.entries(semesters)) {
                     html += `<h3>Semester: ${semester}</h3>`;
-
-                    // Loop through groups (e.g., Group_1, Group_2)
                     for (const [group, days] of Object.entries(groups)) {
                         html += `<h4>Group: ${group}</h4>`;
                         html += '<table class="table table-bordered">';
                         html += '<thead><tr><th>Day</th>';
-
-                        // Generate hour headers (1 to 7)
                         const hours = Array.from({ length: 7 }, (_, i) => i + 1);
                         hours.forEach(hour => {
                             html += `<th>Hour ${hour}</th>`;
                         });
-
                         html += '</tr></thead><tbody>';
-
-                        // Loop through days (Monday to Friday)
                         for (const day of ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']) {
                             html += `<tr><td>${day}</td>`;
-                            
-                            // Loop through periods (hours)
                             hours.forEach(hour => {
                                 const details = days[day] && days[day][hour] ? days[day][hour] : {};
                                 const course = details.Course || '';
                                 const faculty = details.Faculty || '';
                                 const classroom = details.Classroom || '';
-
                                 html += `<td><strong>Course:</strong> ${course}<br><strong>Faculty:</strong> ${faculty}<br><strong>Classroom:</strong> ${classroom}</td>`;
                             });
-
                             html += '</tr>';
                         }
-
                         html += '</tbody></table>';
                     }
                 }
@@ -112,4 +183,5 @@
         }
     </script>
 </body>
+
 </html>

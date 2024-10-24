@@ -1,6 +1,6 @@
 import random
 import json
-from queries import get_courses, get_department_programme_map, get_labs, get_classrooms, get_groups_by_programme, get_faculty_allocation_by_course, get_elective_allocation_by_semester, fetch_num_groups_per_sem
+from queries import get_courses, get_department_programme_map, get_labs, get_classrooms, get_groups_by_programme, get_faculty_allocation_by_course, get_elective_allocation_by_semester, fetch_num_groups_per_sem, is_odd_semester_check
 from cost_computation import compute_costs_for_single_timetable
 import copy
 
@@ -496,7 +496,7 @@ def course_already_assigned_in_other_group(all_timetables, programme, sem, cours
 days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
 labs = get_labs()
 classrooms = get_classrooms()
-is_odd_semester = True
+is_odd_semester = is_odd_semester_check()
 
 department_programme_map = get_department_programme_map()
 
@@ -509,7 +509,7 @@ hours_per_day = 7
 # Example: Get data from the database
 courses_by_programme = get_courses(is_odd_semester)  # This now contains multiple departments
 
-num_groups_per_sem = fetch_num_groups_per_sem(True)  # Semester 1 and 3 have 2 groups each
+num_groups_per_sem = fetch_num_groups_per_sem(is_odd_semester)  # Semester 1 and 3 have 2 groups each
 
 strength_data = get_groups_by_programme(is_odd_semester=True)
 

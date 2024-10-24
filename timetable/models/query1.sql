@@ -105,25 +105,50 @@ CREATE TABLE faculty_workload (
     FOREIGN KEY (faculty_id) REFERENCES faculty(faculty_id) ON DELETE CASCADE  -- foreign key reference to faculty table
 );
 
+DROP TRIGGER IF EXISTS update_faculty_workload;
+
+DROP TRIGGER IF EXISTS update_faculty_workload;
+DROP TRIGGER IF EXISTS update_faculty_workload_on_update;
+
 DELIMITER $$
 
 CREATE TRIGGER update_faculty_workload
 AFTER INSERT ON faculty_allocation
 FOR EACH ROW
 BEGIN
-    -- Check if the faculty_id exists in the faculty_workload table
-    IF EXISTS (SELECT 1 FROM faculty_workload WHERE faculty_id = NEW.faculty_id) THEN
-        -- If it exists, increment the workload_assigned
-        UPDATE faculty_workload
-        SET workload_assigned = workload_assigned + 1
-        WHERE faculty_id = NEW.faculty_id;
-    ELSE
-        -- If it does not exist, insert a new row
-        INSERT INTO faculty_workload (faculty_id, workload_assigned)
-        VALUES (NEW.faculty_id, 1);
-    END IF;
+    -- First, clear the current faculty workload table
+    DELETE FROM faculty_workload;
+
+    -- Recalculate and insert the workload for all faculties from faculty_allocation
+    INSERT INTO faculty_workload (faculty_id, workload_assigned)
+    SELECT faculty_id, COUNT(course_id) AS workload_assigned
+    FROM faculty_allocation
+    GROUP BY faculty_id;
 END$$
 
 DELIMITER ;
 
+DELIMITER $$
+
+CREATE TRIGGER update_faculty_workload_on_update
+AFTER UPDATE ON faculty_allocation
+FOR EACH ROW
+BEGIN
+    -- First, clear the current faculty workload table
+    DELETE FROM faculty_workload;
+
+    -- Recalculate and insert the workload for all faculties from faculty_allocation
+    INSERT INTO faculty_workload (faculty_id, workload_assigned)
+    SELECT faculty_id, COUNT(course_id) AS workload_assigned
+    FROM faculty_allocation
+    GROUP BY faculty_id;
+END$$
+
+DELIMITER ;
+
+CREATE TABLE season (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    sem_season ENUM('odd', 'even', 'none') NOT NULL,
+    status ENUM('open', 'closed') NOT NULL
+);
 

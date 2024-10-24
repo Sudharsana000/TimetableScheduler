@@ -34,6 +34,7 @@ router.get('/generate', (req, res) => {
   
 // POST route to insert timetable data
 router.post('/store', (req, res) => {
+
   const timetableData = req.body.timetable;
 
   // Query the labs database to retrieve the list of lab names
@@ -125,6 +126,53 @@ router.post('/store', (req, res) => {
       });
       res.status(200).send('Timetable entries added successfully');
     });
+  });
+});
+
+// Express route to handle allocation submission
+router.post('/allocation', (req, res) => {
+  const { semesterType } = req.body;
+
+  // If the selected semester is 'odd', delete all related timetable entries
+  const deleteQuery = `DELETE FROM timetable WHERE semester % 2 = 1`; // Assuming odd semesters have odd numbers (1, 3, 5, etc.)
+  
+  db.query(deleteQuery, (err, result) => {
+      if (err) {
+          console.error('Error deleting timetable entries:', err);
+          return res.status(500).send('Failed to delete timetable entries.');
+      }
+
+      // After deletion, update the season record
+      const updateQuery = `UPDATE season SET sem_season = ?, status = 'open' WHERE id = 1`;
+
+      db.query(updateQuery, [semesterType], (err, result) => {
+          if (err) {
+              console.error('Error updating allocation:', err);
+              return res.status(500).send('Failed to submit allocation.');
+          }
+          res.status(200).send('Allocation submitted and timetable entries deleted successfully.');
+      });
+  });
+});
+
+router.post('/close-allocation', (req, res) => {
+  // Update the season table to set the status to 'closed' for the given semester type
+  const query = `
+      UPDATE season
+      SET status = 'closed'
+      WHERE status = 'open';
+  `;
+
+  db.query(query, (err, result) => {
+      if (err) {
+          console.error('Error updating allocation status:', err);
+          return res.status(500).send('Failed to close the allocation.');
+      }
+      if (result.affectedRows > 0) {
+          res.send('Allocation closed successfully!');
+      } else {
+          res.status(400).send('No open allocation found to close.');
+      }
   });
 });
 
