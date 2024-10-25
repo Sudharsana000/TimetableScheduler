@@ -8,8 +8,7 @@ def compute_free_hours(timetable):
                 for day, hours in days.items():
                     for hour, details in hours.items():
                         course = details.get('Course')
-                        # Check if Course is None or an empty list (indicating a free hour)
-                        if course is not None or (isinstance(course, list) and all(c is not None for c in course)):
+                        if course is None or (isinstance(course, list) and all(c is None for c in course)):
                             free_hours += 1
     return free_hours
 

@@ -566,7 +566,7 @@ def add_courses_for_groups(programme_timelines, programme_data, faculties, class
                     hours_per_day
                 )
 
-max_total_cost = -1
+max_total_cost = 1000000000
 max_programme_timelines = None
 
 for i in range(100):
@@ -589,10 +589,8 @@ for i in range(100):
     classroom_switching_weight = 1.5
     total_costs = compute_costs_for_single_timetable(programme_timelines, free_hours_weight, faculty_distribution_weight, classroom_switching_weight)
 
-    # print(total_costs)
-
     # Check if the current total cost is greater than the maximum found so far
-    if total_costs['total_cost'] > max_total_cost:
+    if total_costs['total_cost'] < max_total_cost:
         max_total_cost = total_costs['total_cost']
         max_programme_timelines = programme_timelines
 

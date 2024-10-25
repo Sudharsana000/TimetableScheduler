@@ -558,37 +558,40 @@ router.post('/addAllotments', async (req, res) => {
 //   }
 // }
 
-const deleteExistingAllocations = async (program) => {
-  try {
+const deleteExistingAllocations = (program) => {
+  return new Promise((resolve, reject) => {
     // First, find all course_ids associated with the given programme_id
-    const courseIds = await db.query(
-      'SELECT course_id FROM course WHERE programme_id = ?',
-      [program]
-    );
+    const query1 = 'SELECT course_id FROM course WHERE programme_id = ?';
+    db.query(query1, [program], (err, courseIds) => {
+      if (err) {
+        reject(err);  // Reject the promise with the error
+      } else if (courseIds.length > 0) {
+        const courseIdList = courseIds.map(row => row.course_id);
 
-    if (courseIds.length > 0) {
-      const courseIdList = courseIds.map(row => row.course_id);
-
-      // Delete from faculty_allocation where course_id matches the list
-      await db.query(
-        'DELETE FROM faculty_allocation WHERE course_id IN (?)',
-        [courseIdList]
-      );
-
-      // Delete from elective_allocation where programme_id matches
-      await db.query(
-        'DELETE FROM elective_allocation WHERE programme_id = ?',
-        [program]
-      );
-
-      console.log(`Deleted allocations for program: ${program}`);
-    } else {
-      console.log(`No courses found for program: ${program}`);
-    }
-  } catch (error) {
-    console.error('Error deleting existing allocations:', error);
-    throw error;  // Re-throw error to be caught by the calling function
-  }
+        // Delete from faculty_allocation where course_id matches the list
+        const query2 = 'DELETE FROM faculty_allocation WHERE course_id IN (?)';
+        db.query(query2, [courseIdList], (err) => {
+          if (err) {
+            reject(err);
+          } else {
+            // Delete from elective_allocation where programme_id matches
+            const query3 = 'DELETE FROM elective_allocation WHERE programme_id = ?';
+            db.query(query3, [program], (err) => {
+              if (err) {
+                reject(err);
+              } else {
+                console.log(`Deleted allocations for program: ${program}`);
+                resolve();  // Resolve the promise after successful deletion
+              }
+            });
+          }
+        });
+      } else {
+        console.log(`No courses found for program: ${program}`);
+        resolve();  // Resolve the promise if no courses are found
+      }
+    });
+  });
 };
 
 
